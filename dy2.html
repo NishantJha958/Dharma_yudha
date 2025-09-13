@@ -1,0 +1,1928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dharma Yudha</title>
+    <!-- Use Tailwind CSS for a professional and responsive design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for web audio synthesis -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- MathJax for rendering LaTeX (Sanskrit shlokas) -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Cinzel', serif;
+        }
+
+        /* Thematic Background */
+        .bg-epic {
+            background-color: #3b2a26;
+            background-image: radial-gradient(at 0% 100%, #8c4c3e 0%, transparent 50%),
+                              radial-gradient(at 100% 0%, #4c4e8c 0%, transparent 50%);
+            animation: move-background 20s infinite alternate;
+        }
+        @keyframes move-background {
+            0% {
+                background-position: 0% 50%, 100% 50%;
+            }
+            100% {
+                background-position: 100% 50%, 0% 50%;
+            }
+        }
+
+        /* The game canvas */
+        #gameCanvas {
+            border: 2px solid #a87b32;
+            background-color: #1a1a1a;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            cursor: crosshair;
+        }
+
+        /* Custom styles for elements */
+        .glass-card {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* Hide elements initially */
+        #quiz-section, #game-section, #result-section {
+            display: none;
+        }
+
+        /* Custom fonts for a more epic feel */
+        .font-epic {
+            font-family: 'Cinzel', serif;
+        }
+    </style>
+</head>
+<body class="bg-epic text-white flex items-center justify-center min-h-screen p-4">
+
+    <!-- Welcome Section -->
+    <div id="welcome-section" class="flex flex-col items-center justify-center text-center p-8 rounded-xl glass-card transition-all duration-500 max-w-lg w-full">
+        <h1 class="text-5xl md:text-6xl font-extrabold mb-4 font-epic text-amber-300">Dharma Yudha</h1>
+        <div id="home-shloka" class="text-lg italic text-gray-300 mb-6">
+            $$
+            \text{जननी जन्मभूमिश्च स्वर्गादपि गरीयसी}
+            $$
+            <p class="text-sm mt-2">"Mother and Motherland are more beautiful than heaven."</p>
+        </div>
+        <div class="mb-6">
+            <label for="language-select" class="text-xl font-semibold text-gray-200">Select Language:</label>
+            <select id="language-select" class="ml-2 py-1 px-3 rounded text-gray-900 bg-gray-200">
+                <option value="hindi">Hindi</option>
+                <option value="english">English</option>
+                <option value="bengali">Bengali</option>
+                <option value="tamil">Tamil</option>
+                <option value="telugu">Telugu</option>
+                <option value="punjabi">Punjabi</option>
+            </select>
+        </div>
+        <p class="text-xl md:text-2xl font-semibold text-gray-200 mb-8">Embark on a righteous battle of knowledge and skill.</p>
+        <button id="start-quiz-btn" class="bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold py-4 px-8 rounded-full text-lg md:text-xl transform hover:scale-105 transition-all duration-300 shadow-lg">Start the Trial</button>
+    </div>
+
+    <!-- Quiz Section -->
+    <div id="quiz-section" class="flex flex-col items-center justify-center text-center p-8 rounded-xl glass-card max-w-lg w-full">
+        <h2 id="quiz-title" class="text-3xl font-bold mb-6 font-epic text-amber-300">The Trial of Knowledge</h2>
+        <div id="quiz-shloka" class="text-lg italic text-gray-300 mb-6"></div>
+        <div id="quiz-question-container" class="mb-6 w-full">
+            <!-- Question will be injected here by JS -->
+        </div>
+        <div id="quiz-feedback" class="text-lg font-semibold mb-4 min-h-6"></div>
+        <button id="next-question-btn" class="bg-gray-700 hover:bg-gray-800 text-gray-300 font-bold py-3 px-6 rounded-full text-lg mt-4 transform hover:scale-105 transition-all duration-300 shadow-lg">Next</button>
+    </div>
+
+    <!-- Game Section -->
+    <div id="game-section" class="flex flex-col items-center justify-center text-center p-8 rounded-xl glass-card max-w-2xl w-full">
+        <h2 class="text-3xl font-bold mb-4 font-epic text-amber-300">The Archer's Challenge</h2>
+        <div id="game-info" class="flex justify-between w-full text-xl mb-4 text-gray-200">
+            <span>Time: <span id="game-timer">30</span>s</span>
+            <span>Score: <span id="game-score">0</span></span>
+            <span>High Score: <span id="high-score">0</span></span>
+        </div>
+        <canvas id="gameCanvas" width="600" height="400" class="rounded-lg"></canvas>
+    </div>
+
+    <!-- Results Section -->
+    <div id="result-section" class="flex flex-col items-center justify-center text-center p-8 rounded-xl glass-card max-w-lg w-full">
+        <h2 class="text-3xl font-bold mb-4 font-epic text-amber-300">Your Journey Ends</h2>
+        <p id="final-score-text" class="text-2xl font-semibold mb-6"></p>
+        <div id="final-shloka" class="text-lg italic text-gray-300 mb-4"></div>
+        <button id="restart-btn" class="bg-gray-700 hover:bg-gray-800 text-gray-300 font-bold py-3 px-6 rounded-full text-lg transform hover:scale-105 transition-all duration-300 shadow-lg">Restart</button>
+    </div>
+
+    <script>
+        // State variables
+        let appState = 'welcome';
+        let currentQuizIndex = 0;
+        let quizCorrectAnswers = 0;
+        let gameScore = 0;
+        let gameTimer = 30;
+        let gameInterval = null;
+        let demonSpawner = null;
+        let currentQuizData = [];
+        let currentShlokas = [];
+        let backgroundMusic = null;
+        let selectedLanguage = 'english';
+
+        // UI elements
+        const welcomeSection = document.getElementById('welcome-section');
+        const startQuizBtn = document.getElementById('start-quiz-btn');
+        const languageSelect = document.getElementById('language-select');
+        const quizSection = document.getElementById('quiz-section');
+        const quizShlokaEl = document.getElementById('quiz-shloka');
+        const quizQuestionContainer = document.getElementById('quiz-question-container');
+        const nextQuestionBtn = document.getElementById('next-question-btn');
+        const quizFeedback = document.getElementById('quiz-feedback');
+        const gameSection = document.getElementById('game-section');
+        const gameCanvas = document.getElementById('gameCanvas');
+        const ctx = gameCanvas.getContext('2d');
+        const gameScoreEl = document.getElementById('game-score');
+        const gameTimerEl = document.getElementById('game-timer');
+        const highScoreEl = document.getElementById('high-score');
+        const resultSection = document.getElementById('result-section');
+        const finalScoreText = document.getElementById('final-score-text');
+        const finalShlokaEl = document.getElementById('final-shloka');
+        const restartBtn = document.getElementById('restart-btn');
+
+        // Shloka data with translations
+        const shlokaData = [
+            {
+                sanskrit: "\\text{कर्मण्येवाधिकारस्ते मा फलेषु कदाचन}",
+                english: "You have a right to perform your prescribed duties, but you are not entitled to the fruits of action.",
+                hindi: "कर्म पर ही तुम्हारा अधिकार है, फल पर नहीं।",
+                bengali: "কর্মণ্যেবাধিকারস্তে মা ফলেষু কদাচন।",
+                tamil: "கர்மணியேवाधिकारஸ்தே மா பலேஷு கதாசனா।",
+                telugu: "కర్మణ్యేవాధికారస్తే మా ఫలేషు కదాచన",
+                punjabi: "ਕਰਮਨ੍ਯੇਵਾਧਿਕਾਰਸ੍ਤੇ ਮਾ ਫਲੇਸ਼ੂ ਕਦਾਚਨ।"
+            },
+            {
+                sanskrit: "\\text{यदा यदा हि धर्मस्य ग्लानिर्भवति भारत।}",
+                english: "Whenever there is a decline of righteousness, O Bharat.",
+                hindi: "जब-जब धर्म की हानि होती है, हे भरत।",
+                bengali: "যদা যদা হি ধর্মস্য গ্লানির্ভবতি ভারত।",
+                tamil: "யதா யதா ஹி தர்மஸ்ய க்லானி பவதி பாரத।",
+                telugu: "యదా యదా హి ధర్మస్య గ్లానిర్భవతి భారత",
+                punjabi: "ਯਦਾ ਯਦਾ ਹਿ ਧਰਮਸ੍ਯ ਗ੍ਲਾਨਿਰ੍ਭਵਤਿ ਭਾਰਤ।"
+            },
+            {
+                sanskrit: "\\text{अहंकारविमूढात्मा कर्ताहमिति मन्यते।}",
+                english: "Bewildered by false ego, he thinks himself to be the doer.",
+                hindi: "अहंकार से मोहित होकर, वह अपने को कर्ता मान बैठता है।",
+                bengali: "অহংকারবিমূঢ়াত্মা কর্তাহমিতি মন্যতে।",
+                tamil: "அஹங்காரவிமூடாத்மா கர்தாஅஹமிதி மன்யதே।",
+                telugu: "అహంకారవిమూఢాత్మా కర్తాహమితి మన్యతే",
+                punjabi: "ਅਹਂਕਾਰਵਿਮੂਢਾਤ੍ਮਾ ਕਰ੍ਤਾਹਮਿਤਿ ਮਨ੍ਯਤੇ।"
+            },
+            {
+                sanskrit: "\\text{तस्मादसक्तः सततं कार्यं कर्म समाचर।}",
+                english: "Therefore, without attachment, one should act continuously as a matter of duty.",
+                hindi: "अतः अनासक्त होकर निरंतर कर्तव्य-कर्म करो।",
+                bengali: "তস্মাদসক্তঃ সততং কার্যং কর্ম সমাচর।",
+                tamil: "தஸ்மாதஸக்தஹ சததம் கார்யம் கர்ம சமாசர।",
+                telugu: "తస్మాదసక్తః సతతం కార్యం కర్మ సమాచర",
+                punjabi: "ਤਸ੍ਮਾਦਸਕ੍ਤਃ ਸਤਤਂ ਕਾਰ੍ਯਂ ਕਰ੍ਮ ਸਮਾਚਰ।"
+            },
+            {
+                sanskrit: "\\text{नैनं छिन्दन्ति शस्त्राणि नैनं दहति पावकः।}",
+                english: "Weapons cannot cut the soul, nor can fire burn it.",
+                hindi: "आत्मा को न शस्त्र काट सकते हैं और न आग जला सकती है।",
+                bengali: "নৈনং ছিন্দন্তি শস্ত্রাণি নৈনং দহতি পাবকঃ।",
+                tamil: "நைனம் சிந்தி ஷஸ்த்ராணி நைனம் தஹதி பாவகஹ।",
+                telugu: "నైనం ఛిందంతి శస్త్రాని నైనం దహతి పావకః",
+                punjabi: "ਨੈਨਂ ਛਿਨ੍ਦਨ੍ਤਿ ਸ਼ਸ੍ਤ੍ਰਾਣਿ ਨੈਨਂ ਦਹਤਿ ਪਾਵਕਃ।"
+            },
+            {
+                sanskrit: "\\text{युक्तस् स्वप्नम् प्रबोधस्य युक्तस् चेष्टासु कर्मसु।}",
+                english: "Moderate in his sleep and waking, moderate in his efforts to live.",
+                hindi: "उचित सोने और जागने वाला, उचित कर्म करने वाला।",
+                bengali: "যুক্তস্বাপ্নং প্রবোধস্য যুক্তশ্চেষ্টাশু কর্মসু।",
+                tamil: "யுக்தஹ ஸ்வப்னம் பிரபோதஸ்ய யுக்தஹ சேஷ்டாசு கர்மசு।",
+                telugu: "యుక్తస్వప్నం ప్రబోధస్య యుక్తస్చేష్టాసు కర్మసు",
+                punjabi: "ਯੁਕ੍ਤਸ੍ਵਪ੍ਨਂ ਪ੍ਰਬੋਧਸ੍ਯ ਯੁਕ੍ਤਸ੍ਚੇਸ਼੍ਟਾਸੁ ਕਰ੍ਮਸੁ।"
+            },
+        ];
+        
+        // Inspiring quotes for the end of the game with translations
+        const endGameQuotes = [
+            {
+                sanskrit: "\\text{उद्धरेदात्मनात्मानं नात्मानमवसादयेत्}",
+                english: "Elevate yourself by yourself, and do not degrade yourself.",
+                hindi: "अपना उद्धार स्वयं करो, अपना पतन मत करो।",
+                bengali: "উদ্ধরেদাত্মনাত্মানং নাত্মানমবসায়েৎ।",
+                tamil: "உத்தரெதாத்மனாத்மானம் நாத்மானம் அவசாதயேத்।",
+                telugu: "ఉద్ధరేదాత్మనాత్మానం నాత్మానమవసాదయేత్",
+                punjabi: "ਉਦ੍ਧਰੇਦਾਤ੍ਮਨਾਤ੍ਮਾਨਂ ਨਾਤ੍ਮਾਨਮਵਸਾਦਯੇਤ੍।"
+            },
+            {
+                sanskrit: "\\text{योगस्थः कुरु कर्माणि सङ्गं त्यक्त्वा धनञ्जय।}",
+                english: "Perform your duty equipoised, O Arjuna, abandoning all attachment to success or failure.",
+                hindi: "हे धनंजय, आसक्ति को त्याग कर, योग में स्थित होकर कर्तव्य-कर्म करो।",
+                bengali: "যোগস্থঃ কুরু কর্মাণি সঙ্গং ত্যক্ত্বা ধনঞ্জয়।",
+                tamil: "யோகஸ்தஹ குரு கர்மாணி சங்க த்யக்த்வா தனஞ்சய।",
+                telugu: "యోగస్థః కురు కర్మాణి సఙ్గం త్యక్త్వా ధనంజయ",
+                punjabi: "ਯੋਗਸ੍ਥਃ ਕੁਰੁ ਕਰ੍ਮਾਣਿ ਸਙ੍ਗਂ ਤ੍ਯਕ੍ਤ੍ਵਾ ਧਨਂਜਯ।"
+            },
+            {
+                sanskrit: "\\text{यतो यतो निश्चरति मनश्चञ्चलमस्थिरम्।}",
+                english: "Whenever the mind, which is fickle and unsteady, wanders, one must bring it back under the control of the Self.",
+                hindi: "मन जहाँ-जहाँ विचरण करे, उसे वहाँ से हटाकर आत्मा के अधीन लाओ।",
+                bengali: "যতো যতো নিশ্চরতি মনশ্চঞ্চলমস্থিরম্।",
+                tamil: "யதோ யதோ நிச்சரதி மனஷ்சஞ்சலம் அஸ்திரம்।",
+                telugu: "యతో యతో నిశ్చరతి మనశ్చంచలమస్థిరమ్",
+                punjabi: "ਯਤੋ ਯਤੋ ਨਿਸ਼੍ਚਰਤਿ ਮਨਸ਼੍ਚਂਚਲਮਸ੍ਥਿਰਮ੍।"
+            },
+            {
+                sanskrit: "\\text{अभयं सत्त्वसंशुद्धिर्ज्ञानयोगव्यवस्थितिः।}",
+                english: "Fearlessness, purification of one's existence, cultivation of knowledge - these are the qualities of a divine person.",
+                hindi: "अभय, सत्त्व की शुद्धि, ज्ञान-योग में स्थिति - ये दिव्य गुणों वाले की पहचान हैं।",
+                bengali: "অভয়ং সত্ত্বসং শুদ্ধির্জ্ঞানযোগব্যবস্থিতিঃ।",
+                tamil: "அபயம் சத்வஸம்ஷுத்திர்க்யானயோகவ்யவஸ்திதிஹ।",
+                telugu: "అభయం సత్త్వసంశుద్ధిర్ఙ్ఞానయోగవ్యవస్థితిః",
+                punjabi: "ਅਭਯਂ ਸਤ੍ਤ੍ਵਸਂਸ਼ੁਦ੍ਧਿਰ੍ਜ੍ਞਾਨਯੋਗਵ੍ਯਵਸ੍ਥਿਤਿਃ।"
+            },
+            {
+                sanskrit: "\\text{सत्त्वानुरूपा सर्वस्य श्रद्धा भवति भारत।}",
+                english: "The faith of all is in accordance with their nature, O Arjuna.",
+                hindi: "हे भारत, सभी की श्रद्धा उनके स्वभाव के अनुसार होती है।",
+                bengali: "সত্ত্বানুরূপা সর্বস্য শ্রদ্ধা ভবতি ভারত।",
+                tamil: "சத்வானுரூபா சர்வஸ்ய ஸ்ரத்தா பவதி பாரத।",
+                telugu: "సత్త్వానూరూపా సర్వస్య శ్రద్ధా భవతి భారత",
+                punjabi: "ਸਤ੍ਤ੍ਵਾਨੁਰੂਪਾ ਸਰ੍ਵਸ੍ਯ ਸ਼੍ਰਦ੍ਧਾ ਭਵਤਿ ਭਾਰਤ।"
+            },
+        ];
+
+        // Quiz data with translations
+        const fullQuizData = [
+            {
+                question: {
+                    english: "In the Mahabharata, who was the mother of the Pandavas?",
+                    hindi: "महाभारत में पांडवों की माता कौन थीं?",
+                    bengali: "মহাভারতে পাণ্ডবদের মাতা কে ছিলেন?",
+                    tamil: "மகாபாரதத்தில் பாண்டவர்களின் தாய் யார்?",
+                    telugu: "మహాభారతంలో పాండవుల తల్లి ఎవరు?",
+                    punjabi: "ਮਹਾਭਾਰਤ ਵਿੱਚ ਪਾਂਡਵਾਂ ਦੀ ਮਾਤਾ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Kunti", "Gandhari", "Draupadi"],
+                    hindi: ["कुंती", "गांधारी", "द्रौपदी"],
+                    bengali: ["কুন্তী", "গান্ধারী", "দ্রৌপদী"],
+                    tamil: ["குந்தி", "காந்தாரி", "திரௌபதி"],
+                    telugu: ["కుంతి", "గాంధారి", "ద్రౌਪది"],
+                    punjabi: ["ਕੁੰਤੀ", "ਗਾਂਧਾਰੀ", "ਦ੍ਰੌਪਦੀ"]
+                },
+                answer: "Kunti"
+            },
+            {
+                question: {
+                    english: "What was the name of Lord Rama's wife in the Ramayana?",
+                    hindi: "रामायण में भगवान राम की पत्नी का क्या नाम था?",
+                    bengali: "রামায়ণে ভগবান রামের স্ত্রীর নাম কি ছিল?",
+                    tamil: "இராமாயணத்தில் இராமர் மனைவி பெயர் என்ன?",
+                    telugu: "రామాయణంలో శ్రీరాముని భార్య పేరు ఏమిటి?",
+                    punjabi: "ਰਾਮਾਇਣ ਵਿੱਚ ਭਗਵਾਨ ਰਾਮ ਦੀ ਪਤਨੀ ਦਾ ਨਾਮ ਕੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Sita", "Urmila", "Mandodari"],
+                    hindi: ["सीता", "उर्मिला", "मंदोदरी"],
+                    bengali: ["সীতা", "উর্মীলা", "মন্দোদরী"],
+                    tamil: ["சீதா", "ஊர்மிளா", "மண்டோதரி"],
+                    telugu: ["సీత", "ఊర్మిళ", "మండోదరి"],
+                    punjabi: ["ਸੀਤਾ", "ਊਰਮਿਲਾ", "ਮੰਦੋਦਰੀ"]
+                },
+                answer: "Sita"
+            },
+            {
+                question: {
+                    english: "In the Mahabharata, who was the great archer who was the guru of the Pandavas and Kauravas?",
+                    hindi: "महाभारत में पांडवों और कौरवों के गुरु कौन थे?",
+                    bengali: "মহাভারতে পাণ্ডব ও কৌরবদের গুরু কে ছিলেন?",
+                    tamil: "மகாபாரதத்தில் பாண்டவர்கள் மற்றும் கௌரவர்களின் குரு யார்?",
+                    telugu: "మహాభారతంలో పాండవులకు, కౌరవులకు గురువు ఎవరు?",
+                    punjabi: "ਮਹਾਭਾਰਤ ਵਿੱਚ ਪਾਂਡਵਾਂ ਅਤੇ ਕੌਰਵਾਂ ਦੇ ਗੁਰੂ ਕੌਣ ਸਨ?"
+                },
+                options: {
+                    english: ["Dronacharya", "Bhishma", "Kripacharya"],
+                    hindi: ["द्रोणाचार्य", "भीष्म", "कृपाचार्य"],
+                    bengali: ["দ্রোণাচার্য", "ভীষ্ম", "কৃপাচার্য"],
+                    tamil: ["துரோணாச்சாரியார்", "பீஷ்மர்", "கிருபாச்சாரியார்"],
+                    telugu: ["ద్రోణాచార్య", "భీష్మ", "కృపాਚార్య"],
+                    punjabi: ["ਦ੍ਰੋਣਾਚਾਰੀਆ", "ਭੀਸ਼ਮ", "ਕ੍ਰਿਪਾਚਾਰੀਆ"]
+                },
+                answer: "Dronacharya"
+            },
+            {
+                question: {
+                    english: "What weapon did Lord Rama use to defeat Ravana?",
+                    hindi: "भगवान राम ने रावण को हराने के लिए किस हथियार का उपयोग किया?",
+                    bengali: "ভগবান রাম রাবণকে পরাজিত করতে কোন অস্ত্র ব্যবহার করেছিলেন?",
+                    tamil: "இராமர் இராவணனை வெல்ல பயன்படுத்திய ஆயுதம் எது?",
+                    telugu: "రాముడు రావణుని ఓడించడానికి ఏ ఆయుధం ఉపయోగించాడు?",
+                    punjabi: "ਭਗਵਾਨ ਰਾਮ ਨੇ ਰਾਵਣ ਨੂੰ ਹਰਾਉਣ ਲਈ ਕਿਹੜੇ ਹਥਿਆਰ ਦੀ ਵਰਤੋਂ ਕੀਤੀ?"
+                },
+                options: {
+                    english: ["Axe", "Bow and Arrow", "Mace"],
+                    hindi: ["कुल्हाड़ी", "धनुष और बाण", "गदा"],
+                    bengali: ["কুঠার", "ধনু ও তীর", "গদা"],
+                    tamil: ["கோடாரி", "வில் மற்றும் அம்பு", "கதை"],
+                    telugu: ["గొడ్డలి", "విల్లు మరియు బాణం", "గద"],
+                    punjabi: ["ਕੁਹਾੜੀ", "ਕਮਾਨ ਅਤੇ ਤੀਰ", "ਗਦਾ"]
+                },
+                answer: "Bow and Arrow"
+            },
+            {
+                question: {
+                    english: "Who was the younger brother of Lord Rama?",
+                    hindi: "भगवान राम के छोटे भाई कौन थे?",
+                    bengali: "ভগবান রামের ছোট ভাই কে ছিলেন?",
+                    tamil: "இராமர் இளைய சகோதரர் யார்?",
+                    telugu: "శ్రీరాముని తమ్ముడు ఎవరు?",
+                    punjabi: "ਭਗਵਾਨ ਰਾਮ ਦੇ ਛੋਟੇ ਭਾਈ ਕੌਣ ਸਨ?"
+                },
+                options: {
+                    english: ["Bharata", "Lakshmana", "Shatrughna"],
+                    hindi: ["भरत", "लक्ष्मण", "शत्रुघ्न"],
+                    bengali: ["ভরত", "লক্ষ্মণ", "শত্রুঘ্ন"],
+                    tamil: ["பரதன்", "இலக்குமணன்", "சத்ருக்கணன்"],
+                    telugu: ["భరతుడు", "లక్ష్మణుడు", "శత్రుఘ్నుడు"],
+                    punjabi: ["ਭਰਤ", "ਲਕਸ਼ਮਣ", "ਸ਼ਤਰੁਘਨ"]
+                },
+                answer: "Lakshmana"
+            },
+            {
+                question: {
+                    english: "In the Ramayana, what was the name of Ravana's sister?",
+                    hindi: "रामायण में रावण की बहन का क्या नाम था?",
+                    bengali: "রামায়ণে রাবণের বোনের নাম কি ছিল?",
+                    tamil: "இராமாயணத்தில் இராவணன் சகோதரி பெயர் என்ன?",
+                    telugu: "రామాయణంలో రావణుని సోదరి పేరు ఏమిటి?",
+                    punjabi: "ਰਾਮਾਇਣ ਵਿੱਚ ਰਾਵਣ ਦੀ ਭੈਣ ਦਾ ਨਾਮ ਕੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Kaikeyi", "Surpanakha", "Mandodari"],
+                    hindi: ["कैकेयी", "शूर्पणखा", "मंदोदरी"],
+                    bengali: ["কৈকেয়ী", "শূর্পণখা", "মন্দোদরী"],
+                    tamil: ["கைகேயி", "சூர்ப்பனகை", "மண்டோதரி"],
+                    telugu: ["కైకేయి", "శూర్పణఖ", "మండోదరి"],
+                    punjabi: ["ਕੈਕੇਯੀ", "ਸ਼ੂਰਪਨਖਾ", "ਮੰਦੋਦਰੀ"]
+                },
+                answer: "Surpanakha"
+            },
+            {
+                question: {
+                    english: "Who was the son of Abhimanyu and Uttara in the Mahabharata?",
+                    hindi: "महाभारत में अभिमन्यु और उत्तरा के पुत्र कौन थे?",
+                    bengali: "মহাভারতে অভিমন্যু ও উত্তরার পুত্র কে ছিলেন?",
+                    tamil: "மகாபாரதத்தில் அபிமன்யு மற்றும் உத்தரையின் மகன் யார்?",
+                    telugu: "మహాభారతంలో అభిమన్యుడు, ఉత్తరల కుమారుడు ఎవరు?",
+                    punjabi: "ਮਹਾਭਾਰਤ ਵਿੱਚ ਅਭਿਮਨਿਊ ਅਤੇ ਉੱਤਰਾ ਦਾ ਪੁੱਤਰ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Parikshit", "Arjun", "Ashwatthama"],
+                    hindi: ["परीक्षित", "अर्जुन", "ਅਸ਼ਵਤਥਾਮਾ"],
+                    bengali: ["পরীক্ষিত", "অর্জুন", "অশ্বত্থামা"],
+                    tamil: ["பரிசித்", "அர்ஜுனன்", "அஸ்வத்தாமன்"],
+                    telugu: ["పరీక్షిత్", "అర్జునుడు", "అశ్వత్థామ"],
+                    punjabi: ["ਪਰੀਕਸ਼ਿਤ", "ਅਰਜੁਨ", "ਅਸ਼ਵਤਥਾਮਾ"]
+                },
+                answer: "Parikshit"
+            },
+            {
+                question: {
+                    english: "Which mountain did Hanuman lift to save Lakshmana?",
+                    hindi: "हनुमान ने लक्ष्मण को बचाने के लिए कौन सा पर्वत उठाया था?",
+                    bengali: "লক্ষণকে বাঁচাতে হনুমান কোন পর্বত তুলেছিলেন?",
+                    tamil: "இலக்குவனைக் காப்பாற்ற அனுமன் எந்த மலையை தூக்கினார்?",
+                    telugu: "లక్ష్మణుడిని కాపాడటానికి హనుమంతుడు ఏ పర్వతం ఎత్తాడు?",
+                    punjabi: "ਹਨੂਮਾਨ ਨੇ ਲਕਸ਼ਮਣ ਨੂੰ ਬਚਾਉਣ ਲਈ ਕਿਹੜਾ ਪਹਾੜ ਚੁੱਕਿਆ ਸੀ?"
+                },
+                options: {
+                    english: ["Govardhan Parbat", "Himalayas", "Dronagiri Parvat"],
+                    hindi: ["गोवर्धन पर्वत", "हिमालय", "द्रोणागिरी पर्वत"],
+                    bengali: ["গোবর্ধন পর্বত", "হিমালয়", "দ্রোণাগিরি পর্বত"],
+                    tamil: ["கோவர்தன் பர்வதம்", "இமயமலை", "துரோணகிரி பர்வதம்"],
+                    telugu: ["గోవర్ధన పర్వతం", "హిమాలయాలు", "ద్రోణగిరి పర్వతం"],
+                    punjabi: ["ਗੋਵਰਧਨ ਪਰਬਤ", "ਹਿਮਾਲਿਆ", "ਦ੍ਰੋਣਾਗਿਰੀ ਪਰਬਤ"]
+                },
+                answer: "Dronagiri Parvat"
+            },
+            {
+                question: {
+                    english: "What was the name of the kingdom ruled by Lord Krishna?",
+                    hindi: "भगवान कृष्ण द्वारा शासित राज्य का क्या नाम था?",
+                    bengali: "ভগবান কৃষ্ণ দ্বারা শাসিত রাজ্যের নাম কি ছিল?",
+                    tamil: "இராமர் ஆட்சி செய்த நாட்டின் பெயர் என்ன?",
+                    telugu: "శ్రీకృష్ణుడు పాలించిన రాజ్యం పేరు ఏమిటి?",
+                    punjabi: "ਭਗਵਾਨ ਕ੍ਰਿਸ਼ਨ ਦੁਆਰਾ ਸ਼ਾਸਿਤ ਰਾਜ ਦਾ ਨਾਮ ਕੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Ayodhya", "Hastinapur", "Dwarka"],
+                    hindi: ["अयोध्या", "हस्तिनापुर", "द्वारका"],
+                    bengali: ["অযোধ্যা", "হস্তিনাপুর", "দ্বারকা"],
+                    tamil: ["அயோத்தியா", "ஹஸ்தினாபுரம்", "துவாரகா"],
+                    telugu: ["అయోధ్య", "హస్తినాపురం", "ద్వారక"],
+                    punjabi: ["ਅਯੋਧਿਆ", "ਹਸਤਿਨਾਪੁਰ", "ਦ੍ਵਾਰਕਾ"]
+                },
+                answer: "Dwarka"
+            },
+            {
+                question: {
+                    english: "Who was the father of Bhishma in the Mahabharata?",
+                    hindi: "महाभारत में भीष्म के पिता कौन थे?",
+                    bengali: "মহাভারতে ভীষ্মের পিতা কে ছিলেন?",
+                    tamil: "மகாபாரதத்தில் பீஷ்மரின் தந்தை யார்?",
+                    telugu: "మహాభారతంలో భీష్ముని తండ్రి ఎవరు?",
+                    punjabi: "ਮਹਾਭਾਰਤ ਵਿੱਚ ਭੀਸ਼ਮ ਦੇ ਪਿਤਾ ਕੌਣ ਸਨ?"
+                },
+                options: {
+                    english: ["Shantanu", "Dhritarashtra", "Pandu"],
+                    hindi: ["शांतनु", "धृतराष्ट्र", "पांडु"],
+                    bengali: ["শন্তনু", "ধৃতরাষ্ট্র", "পাণ্ডু"],
+                    tamil: ["சாந்தனு", "திருதராஷ்டிரன்", "பாண்டு"],
+                    telugu: ["శంతను", "ధృతరాష్ట్ర", "పాండు"],
+                    punjabi: ["ਸ਼ਾਂਤਨੂ", "ਧ੍ਰਿਤਰਾਸ਼ਟਰ", "ਪਾਂਡੂ"]
+                },
+                answer: "Shantanu"
+            },
+            {
+                question: {
+                    english: "In the Mahabharata, who was the first commander-in-chief of the Kaurava army?",
+                    hindi: "महाभारत में कौरव सेना का पहला सेनापति कौन था?",
+                    bengali: "মহাভারতে কৌরব সেনাবাহিনীর প্রথম সেনাপতি কে ছিলেন?",
+                    tamil: "மகாபாரதத்தில் கௌரவப் படைகளின் முதல் தளபதி யார்?",
+                    telugu: "మహాభారతంలో కౌరవ సైన్యానికి మొదటి సేనాపతి ఎవరు?",
+                    punjabi: "ਮਹਾਭਾਰਤ ਵਿੱਚ ਕੌਰਵ ਸੈਨਾ ਦਾ ਪਹਿਲਾ ਸੈਨਾਪਤੀ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Bhishma", "Dronacharya", "Karna"],
+                    hindi: ["भीष्म", "द्रोणाचार्य", "कर्ण"],
+                    bengali: ["ভীষ্ম", "দ্রোণাচার্য", "কর্ণ"],
+                    tamil: ["பீஷ்மர்", "துரோணாச்சாரியார்", "கர்ணன்"],
+                    telugu: ["భీష్మ", "ద్రోణాచార్య", "కర్ణ"],
+                    punjabi: ["ਭੀਸ਼ਮ", "ਦ੍ਰੋਣਾਚਾਰੀਆ", "ਕਰਣ"]
+                },
+                answer: "Bhishma"
+            },
+            {
+                question: {
+                    english: "Which forest did Lord Rama, Sita, and Lakshmana stay in during their exile?",
+                    hindi: "वनवास के दौरान भगवान राम, सीता और लक्ष्मण किस जंगल में रहे?",
+                    bengali: "বনবাসের সময় ভগবান রাম, সীতা ও লক্ষ্মণ কোন বনে ছিলেন?",
+                    tamil: "வனவாசத்தின் போது இராமர், சீதா, இலக்குமணன் எந்த வனத்தில் இருந்தனர்?",
+                    telugu: "వనవాస సమయంలో శ్రీరాముడు, సీత, లక్ష్మణుడు ఏ అడవిలో ఉన్నారు?",
+                    punjabi: "ਵਨਵਾਸ ਦੌਰਾਨ ਭਗਵਾਨ ਰਾਮ, ਸੀਤਾ ਅਤੇ ਲਕਸ਼ਮਣ ਕਿਹੜੇ ਜੰਗਲ ਵਿੱਚ ਰਹੇ?"
+                },
+                options: {
+                    english: ["Dandakaranya", "Naimisharanya", "Khandava"],
+                    hindi: ["दंडकारण्य", "नैमिषारण्य", "खांडव"],
+                    bengali: ["দণ্ডকারণ্য", "নৈমিষারণ্য", "খণ্ডব"],
+                    tamil: ["தண்டகாரண்யம்", "நைமிசாரண்யம்", "காண்டவம்"],
+                    telugu: ["దండకారణ్యం", "నైమిషారణ్యం", "ఖండవం"],
+                    punjabi: ["ਦੰਡਕਾਰਨਯ", "ਨੈਮੀਸ਼ਾਰਨਯ", "ਖੰਡਵ"]
+                },
+                answer: "Dandakaranya"
+            },
+            {
+                question: {
+                    english: "In the Mahabharata, who was the son of Krishna and Rukmini?",
+                    hindi: "महाभारत में कृष्ण और रुक्मिणी के पुत्र कौन थे?",
+                    bengali: "মহাভারতে কৃষ্ণ ও রুক্মিণীর পুত্র কে ছিলেন?",
+                    tamil: "மகாபாரதத்தில் கிருஷ்ணர் மற்றும் ருக்மிணி மகன் யார்?",
+                    telugu: "మహాభారతంలో కృష్ణుడు, రుక్మిణిల కుమారుడు ఎవరు?",
+                    punjabi: "ਮਹਾਭਾਰਤ ਵਿੱਚ ਕ੍ਰਿਸ਼ਨ ਅਤੇ ਰੁਕਮਿਣੀ ਦੇ ਪੁੱਤਰ ਕੌਣ ਸਨ?"
+                },
+                options: {
+                    english: ["Abhimanyu", "Pradyumna", "Samba"],
+                    hindi: ["अभिमन्यु", "प्रद्युम्न", "सांबा"],
+                    bengali: ["অভিমন্যু", "প্রদ্যুম্ন", "সাম্ব"],
+                    tamil: ["அபிமன்யு", "பிரத்யும்னன்", "சம்பன்"],
+                    telugu: ["అభిమన్యుడు", "ప్రద్యుమ్నుడు", "సాంబ"],
+                    punjabi: ["ਅਭਿਮਨਿਊ", "ਪ੍ਰਦਯੁਮਨ", "ਸਾਂਬਾ"]
+                },
+                answer: "Pradyumna"
+            },
+            {
+                question: {
+                    english: "What was the name of the golden deer that tempted Sita?",
+                    hindi: "उस सुनहरे हिरण का क्या नाम था जिसने सीता को लुभाया था?",
+                    bengali: "সীতাদেবীকে প্রলুব্ধকারী সেই সুবর্ণ হরিণের নাম কী ছিল?",
+                    tamil: "சீதையை கவர்ந்த தங்க மான் பெயர் என்ன?",
+                    telugu: "సీతను ఆకర్షించిన బంగారు లేడి పేరు ఏమిటి?",
+                    punjabi: "ਸੁਨਹਿਰੀ ਹਿਰਨ ਦਾ ਨਾਮ ਕੀ ਸੀ ਜਿਸ ਨੇ ਸੀਤਾ ਨੂੰ ਭਰਮਾਇਆ?"
+                },
+                options: {
+                    english: ["Maricha", "Subahu", "Kumbhakarna"],
+                    hindi: ["मारीच", "सुबाहु", "कुंभकर्ण"],
+                    bengali: ["মারীচ", "সুবাউ", "কুম্ভকর্ণ"],
+                    tamil: ["மாரிச்சன்", "சுபாகு", "கும்பகர்ணன்"],
+                    telugu: ["మారీచుడు", "సుబాహు", "కుంభకర్ణుడు"],
+                    punjabi: ["ਮਾਰੀਚ", "ਸੁਬਾਹੂ", "ਕੁੰਭਕਰਣ"]
+                },
+                answer: "Maricha"
+            },
+            {
+                question: {
+                    english: "Who was the younger brother of Duryodhana?",
+                    hindi: "दुर्योधन के छोटे भाई कौन थे?",
+                    bengali: "দুর্যোধনের ছোট ভাই কে ছিলেন?",
+                    tamil: "துரியோதனன் இளைய சகோதரர் யார்?",
+                    telugu: "దుర్యోధనుడి తమ్ముడు ఎవరు?",
+                    punjabi: "ਦੁਰਯੋਧਨ ਦਾ ਛੋਟਾ ਭਰਾ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Dushasana", "Karna", "Vikarna"],
+                    hindi: ["दुःशासन", "कर्ण", "विकर्ण"],
+                    bengali: ["দুঃশাসন", "কর্ণ", "বিকর্ণ"],
+                    tamil: ["துச்சாதனன்", "கர்ணன்", "விகர்ணன்"],
+                    telugu: ["దుశ్శాసనుడు", "కర్ణుడు", "వికర్ణుడు"],
+                    punjabi: ["ਦੁਹਸ਼ਾਸਨ", "ਕਰਣ", "ਵਿਕਰਣ"]
+                },
+                answer: "Dushasana"
+            },
+            {
+                question: {
+                    english: "Which river did Rama, Lakshmana, and Sita cross to enter the forest?",
+                    hindi: "राम, लक्ष्मण और सीता ने वन में प्रवेश करने के लिए किस नदी को पार किया?",
+                    bengali: "রাম, লক্ষ্মণ ও সীতা বনে প্রবেশ করতে কোন নদী পার হয়েছিলেন?",
+                    tamil: "இராமர், இலக்குமணன் மற்றும் சீதா எந்த நதியைக் கடந்து வனத்திற்குள் நுழைந்தனர்?",
+                    telugu: "రాముడు, లక్ష్మణుడు, సీత అడవిలోకి ప్రవేశించడానికి ఏ నది దాటారు?",
+                    punjabi: "ਰਾਮ, ਲਕਸ਼ਮਣ ਅਤੇ ਸੀਤਾ ਨੇ ਜੰਗਲ ਵਿੱਚ ਦਾਖਲ ਹੋਣ ਲਈ ਕਿਹੜੀ ਨਦੀ ਪਾਰ ਕੀਤੀ?"
+                },
+                options: {
+                    english: ["Ganga", "Yamuna", "Sarayu"],
+                    hindi: ["गंगा", "यमुना", "सरयू"],
+                    bengali: ["গঙ্গা", "যমুনা", "সরযু"],
+                    tamil: ["கங்கை", "யமுனா", "சரயு"],
+                    telugu: ["గంగ", "యమున", "సరయు"],
+                    punjabi: ["ਗੰਗਾ", "ਯਮੁਨਾ", "ਸਰਯੂ"]
+                },
+                answer: "Ganga"
+            },
+            {
+                question: {
+                    english: "Who was the guru of Lord Parashurama?",
+                    hindi: "भगवान परशुराम के गुरु कौन थे?",
+                    bengali: "ভগবান পরশুরামের গুরু কে ছিলেন?",
+                    tamil: "பரசுராமரின் குரு யார்?",
+                    telugu: "పరశురాముని గురువు ఎవరు?",
+                    punjabi: "ਭਗਵਾਨ ਪਰਸ਼ੁਰਾਮ ਦੇ ਗੁਰੂ ਕੌਣ ਸਨ?"
+                },
+                options: {
+                    english: ["Vishwamitra", "Shiva", "Bhrigu"],
+                    hindi: ["विश्वामित्र", "शिव", "भृगु"],
+                    bengali: ["বিশ্বামিত্র", "শিব", "ভৃগু"],
+                    tamil: ["விஸ்வாமித்திரர்", "சிவன்", "பிருகு"],
+                    telugu: ["విశ్వామిత్రుడు", "శివుడు", "భృగుడు"],
+                    punjabi: ["ਵਿਸ਼ਵਾਮਿਤ੍ਰ", "ਸ਼ਿਵ", "ਭ੍ਰਿਗੂ"]
+                },
+                answer: "Shiva"
+            },
+            {
+                question: {
+                    english: "In the Mahabharata, who was known as the 'son of the wind'?",
+                    hindi: "महाभारत में 'वायु पुत्र' के नाम से किसे जाना जाता था?",
+                    bengali: "মহাভারতে 'বায়ুপুত্র' নামে কে পরিচিত ছিলেন?",
+                    tamil: "மகாபாரதத்தில் 'வாயுவின் மகன்' என்று அழைக்கப்படுபவர் யார்?",
+                    telugu: "మహాభారతంలో 'గాలి కొడుకు' అని ఎవరిని పిలిచేవారు?",
+                    punjabi: "ਮਹਾਭਾਰਤ ਵਿੱਚ 'ਹਵਾ ਦਾ ਪੁੱਤਰ' ਵਜੋਂ ਕੌਣ ਜਾਣਿਆ ਜਾਂਦਾ ਸੀ?"
+                },
+                options: {
+                    english: ["Arjuna", "Bhima", "Yudhishthira"],
+                    hindi: ["अर्जुन", "भीम", "युधिष्ठिर"],
+                    bengali: ["অর্জুন", "ভীম", "যুধিষ্ঠির"],
+                    tamil: ["அர்ஜுனன்", "பீமன்", "யுதிஷ்டிரன்"],
+                    telugu: ["అర్జునుడు", "భీముడు", "యుధిష్ఠిరుడు"],
+                    punjabi: ["ਅਰਜੁਨ", "ਭੀਮ", "ਯੁਧਿਸ਼ਠਿਰ"]
+                },
+                answer: "Bhima"
+            },
+            {
+                question: {
+                    english: "Who was the father of Ravana?",
+                    hindi: "रावण के पिता कौन थे?",
+                    bengali: "রাবণের পিতা কে ছিলেন?",
+                    tamil: "இராவணனின் தந்தை யார்?",
+                    telugu: "రావణుడి తండ్రి ఎవరు?",
+                    punjabi: "ਰਾਵਣ ਦੇ ਪਿਤਾ ਕੌਣ ਸਨ?"
+                },
+                options: {
+                    english: ["Kumbhakarna", "Visrava", "Indrajit"],
+                    hindi: ["कुंभकर्ण", "विश्रवा", "इंद्रजीत"],
+                    bengali: ["কুম্ভকর্ণ", "বিশ্রবা", "ইন্দ্রজিৎ"],
+                    tamil: ["கும்பகர்ணன்", "விஸ்ரவா", "இந்திரஜித்"],
+                    telugu: ["కుంభకర్ణుడు", "విశ్రవుడు", "ఇంద్రజిత్తు"],
+                    punjabi: ["ਕੁੰਭਕਰਣ", "ਵਿਸ਼੍ਰਵਾ", "ਇੰਦ੍ਰਜੀਤ"]
+                },
+                answer: "Visrava"
+            },
+            {
+                question: {
+                    english: "What was the name of the divine mace of Bhima?",
+                    hindi: "भीम की दिव्य गदा का क्या नाम था?",
+                    bengali: "ভীমের ঐশ্বরিক গদার নাম কী ছিল?",
+                    tamil: "பீமனின் தெய்வீக கதை பெயர் என்ன?",
+                    telugu: "భీముని దివ్య గద పేరు ఏమిటి?",
+                    punjabi: "ਭੀਮ ਦੀ ਦਿਵਯ ਗਦਾ ਦਾ ਨਾਮ ਕੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Gandiva", "Kaumodaki", "Gada"],
+                    hindi: ["गांडीव", "कौमोदकी", "गदा"],
+                    bengali: ["গান্ধীব", "কৌমোদকী", "গদা"],
+                    tamil: ["காண்டீபம்", "கௌமோதகி", "கதை"],
+                    telugu: ["గాండీవ", "కౌమోదకి", "గద"],
+                    punjabi: ["ਗਾਂਡੀਵਾ", "ਕੌਮੋਦਕੀ", "ਗਦਾ"]
+                },
+                answer: "Gada"
+            },
+            {
+                question: {
+                    english: "Who was the wife of Dronacharya?",
+                    hindi: "द्रोणाचार्य की पत्नी कौन थीं?",
+                    bengali: "দ্রোণাচার্যের স্ত্রী কে ছিলেন?",
+                    tamil: "துரோணாச்சாரியாரின் மனைவி யார்?",
+                    telugu: "ద్రోణాచార్యుని భార్య ఎవరు?",
+                    punjabi: "ਦ੍ਰੋਣਾਚਾਰੀਆ ਦੀ ਪਤਨੀ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Kunti", "Kripi", "Urvashi"],
+                    hindi: ["कुंती", "कृपी", "उर्वशी"],
+                    bengali: ["কুন্তী", "কৃপী", "উর্বশী"],
+                    tamil: ["குந்தி", "கிரிபி", "உர்வசி"],
+                    telugu: ["కుంతి", "క్రిపి", "ఉర్వశి"],
+                    punjabi: ["ਕੁੰਤੀ", "ਕ੍ਰਿਪੀ", "ਊਰਵਸ਼ੀ"]
+                },
+                answer: "Kripi"
+            },
+            {
+                question: {
+                    english: "In the Ramayana, who was the king of the monkeys who helped Rama?",
+                    hindi: "रामायण में, बंदरों के राजा कौन थे जिन्होंने राम की मदद की?",
+                    bengali: "রামায়ণে, বানরদের রাজা কে ছিলেন যিনি রামকে সাহায্য করেছিলেন?",
+                    tamil: "இராமாயணத்தில், இராமருக்கு உதவிய வானர அரசன் யார்?",
+                    telugu: "రామాయణంలో, రాముడికి సహాయం చేసిన కోతుల రాజు ఎవరు?",
+                    punjabi: "ਰਾਮਾਇਣ ਵਿੱਚ, ਬਾਂਦਰਾਂ ਦਾ ਰਾਜਾ ਕੌਣ ਸੀ ਜਿਸ ਨੇ ਰਾਮ ਦੀ ਮਦਦ ਕੀਤੀ?"
+                },
+                options: {
+                    english: ["Sugriva", "Vali", "Jambavan"],
+                    hindi: ["सुग्रीव", "वाली", "जाम्बवान"],
+                    bengali: ["সুগ্রীব", "বালি", "জাম্ববান"],
+                    tamil: ["சுக்ரீவன்", "வாலி", "ஜாம்பவான்"],
+                    telugu: ["సుగ్రీవుడు", "వాలి", "జాంబవంతుడు"],
+                    punjabi: ["ਸੁਗ੍ਰੀਵ", "ਵਾਲੀ", "ਜਾਂਬਵਾਨ"]
+                },
+                answer: "Sugriva"
+            },
+            {
+                question: {
+                    english: "What was the name of the divine conch shell of Arjuna?",
+                    hindi: "अर्जुन के दिव्य शंख का क्या नाम था?",
+                    bengali: "অর্জুনের ঐশ্বরিক শঙ্খের নাম কী ছিল?",
+                    tamil: "அர்ஜுனரின் தெய்வீக சங்கின் பெயர் என்ன?",
+                    telugu: "అర్జునుని దివ్య శంఖం పేరు ఏమిటి?",
+                    punjabi: "ਅਰਜੁਨ ਦੇ ਦਿਵਯ ਸ਼ੰਖ ਦਾ ਨਾਮ ਕੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Panchajanya", "Devadatta", "Anantavijaya"],
+                    hindi: ["पांचजन्य", "देवदत्त", "अनंतविजय"],
+                    bengali: ["পঞ্চজন্য", "দেবদত্ত", "অনন্তবিজয়"],
+                    tamil: ["பாஞ்சஜன்யம்", "தேவதத்தன்", "அனந்தவிஜயம்"],
+                    telugu: ["పాంచజన్య", "దేవదత్త", "అనంతవిజయ"],
+                    punjabi: ["ਪਾਂਚਜਨਯ", "ਦੇਵਦੱਤ", "ਅਨੰਤਵਿਜਯਾ"]
+                },
+                answer: "Devadatta"
+            },
+            {
+                question: {
+                    english: "What was the name of the powerful divine bow that Rama broke at Sita's Swayamvara?",
+                    hindi: "सीता के स्वयंवर में राम ने जिस शक्तिशाली दिव्य धनुष को तोड़ा था, उसका क्या नाम था?",
+                    bengali: "সীতার স্বয়ম্বরে রাম যে শক্তিশালী ঐশ্বরিক ধনুকটি ভেঙেছিলেন, তার নাম কী ছিল?",
+                    tamil: "சீதா சுயவரத்தில் ராமர் உடைத்த தெய்வீக வில்லின் பெயர் என்ன?",
+                    telugu: "సీత స్వయంవరంలో రాముడు విరిచిన శక్తివంతమైన దివ్య ధనుస్సు పేరు ఏమిటి?",
+                    punjabi: "ਸੀਤਾ ਦੇ ਸਵਯੰਵਰ ਵਿੱਚ ਰਾਮ ਦੁਆਰਾ ਤੋੜੇ ਗਏ ਸ਼ਕਤੀਸ਼ਾਲੀ ਦਿਵਯ ਕਮਾਨ ਦਾ ਨਾਮ ਕੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Shiva Dhanush", "Pinaka", "Gandiva"],
+                    hindi: ["शिव धनुष", "पिनाक", "गांडीव"],
+                    bengali: ["শিব ধনু", "পিণাক", "গান্ধীব"],
+                    tamil: ["சிவா தனுஷ்", "பிணாக", "காண்டீபம்"],
+                    telugu: ["శివ ధనుస్సు", "పినాక", "గాండీవ"],
+                    punjabi: ["ਸ਼ਿਵ ਧਨੁਸ਼", "ਪਿਨਾਕ", "ਗਾਂਡੀਵਾ"]
+                },
+                answer: "Shiva Dhanush"
+            },
+            {
+                question: {
+                    english: "In the Mahabharata, who was the son of Lord Krishna's sister Subhadra?",
+                    hindi: "महाभारत में भगवान कृष्ण की बहन सुभद्रा के पुत्र कौन थे?",
+                    bengali: "মহাভারতে ভগবান কৃষ্ণের বোন সুভদ্রার পুত্র কে ছিলেন?",
+                    tamil: "மகாபாரதத்தில் கிருஷ்ணர் சகோதரி சுபத்ரா மகன் யார்?",
+                    telugu: "మహాభారతంలో శ్రీకృష్ణుని సోదరి సుభద్ర కుమారుడు ఎవరు?",
+                    punjabi: "ਮਹਾਭਾਰਤ ਵਿੱਚ ਭਗਵਾਨ ਕ੍ਰਿਸ਼ਨ ਦੀ ਭੈਣ ਸੁਭਦਰਾ ਦਾ ਪੁੱਤਰ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Parikshit", "Pradyumna", "Abhimanyu"],
+                    hindi: ["परीक्षित", "प्रद्युम्न", "अभिमन्यु"],
+                    bengali: ["পরীক্ষিত", "প্রদ্যুম্ন", "অভিমন্যু"],
+                    tamil: ["பரிசித்", "பிரத்யும்னன்", "அபிமன்யு"],
+                    telugu: ["పరీక్షిత్", "ప్రద్యుమ్నుడు", "అభిమన్యుడు"],
+                    punjabi: ["ਪਰੀਕਸ਼ਿਤ", "ਪ੍ਰਦਯੁਮਨ", "ਅਭਿਮਨਿਊ"]
+                },
+                answer: "Abhimanyu"
+            },
+            {
+                question: {
+                    english: "What was the name of Ravana's son who was a great warrior?",
+                    hindi: "रावण के उस पुत्र का क्या नाम था जो एक महान योद्धा था?",
+                    bengali: "রাবণের সেই পুত্রের নাম কি ছিল যিনি একজন মহান যোদ্ধা ছিলেন?",
+                    tamil: "இராவணனின் மகன் யார், அவர் ஒரு சிறந்த போர்வீரர்?",
+                    telugu: "రావణుడి కుమారుడు గొప్ప యోధుని పేరు ఏమిటి?",
+                    punjabi: "ਰਾਵਣ ਦੇ ਉਸ ਪੁੱਤਰ ਦਾ ਨਾਮ ਕੀ ਸੀ ਜੋ ਇੱਕ ਮਹਾਨ ਯੋਧਾ ਸੀ?"
+                },
+                options: {
+                    english: ["Kumbhakarna", "Indrajit", "Vibhishana"],
+                    hindi: ["कुंभकर्ण", "इंद्रजीत", "विभीषण"],
+                    bengali: ["কুম্ভকর্ণ", "ইন্দ্রজিৎ", "বিভীষণ"],
+                    tamil: ["கும்பகர்ணன்", "இந்திரஜித்", "விபீஷணன்"],
+                    telugu: ["కుంభకర్ణుడు", "ఇంద్రజిత్తు", "విభీషణుడు"],
+                    punjabi: ["ਕੁੰਭਕਰਣ", "ਇੰਦ੍ਰਜੀਤ", "ਵਿਭੀਸ਼ਣ"]
+                },
+                answer: "Indrajit"
+            },
+            {
+                question: {
+                    english: "Who was the king of Hastinapur before the Pandavas and Kauravas?",
+                    hindi: "पांडवों और कौरवों से पहले हस्तिनापुर के राजा कौन थे?",
+                    bengali: "পাণ্ডব ও কৌরবদের আগে হস্তিনাপুরের রাজা কে ছিলেন?",
+                    tamil: "பாண்டவர்கள் மற்றும் கௌரவர்களுக்கு முன்பு ஹஸ்தினாபுரத்தின் அரசர் யார்?",
+                    telugu: "పాండవులు, కౌరవులకు ముందు హస్తినాపురం రాజు ఎవరు?",
+                    punjabi: "ਪਾਂਡਵਾਂ ਅਤੇ ਕੌਰਵਾਂ ਤੋਂ ਪਹਿਲਾਂ ਹਸਤਿਨਾਪੁਰ ਦੇ ਰਾਜਾ ਕੌਣ ਸਨ?"
+                },
+                options: {
+                    english: ["Dhritarashtra", "Pandu", "Shantanu"],
+                    hindi: ["धृतराष्ट्र", "पांडु", "शांतनु"],
+                    bengali: ["ধৃতরাষ্ট্র", "পাণ্ডু", "শন্তনু"],
+                    tamil: ["திருதராஷ்டிரன்", "பாண்டு", "சாந்தனு"],
+                    telugu: ["ధృతరాష్ట్రుడు", "पाండు", "శంతను"],
+                    punjabi: ["ਧ੍ਰਿਤਰਾਸ਼ਟਰ", "ਪਾਂਡੂ", "ਸ਼ਾਂਤਨੂ"]
+                },
+                answer: "Shantanu"
+            },
+            {
+                question: {
+                    english: "What was the name of the city where Rama was born?",
+                    hindi: "उस शहर का क्या नाम था जहाँ राम का जन्म हुआ था?",
+                    bengali: "রামের জন্মস্থান শহরের নাম কি ছিল?",
+                    tamil: "இராமர் பிறந்த நகரத்தின் பெயர் என்ன?",
+                    telugu: "రాముడు జన్మించిన పట్టణం పేరు ఏమిటి?",
+                    punjabi: "ਉਸ ਸ਼ਹਿਰ ਦਾ ਨਾਮ ਕੀ ਸੀ ਜਿੱਥੇ ਰਾਮ ਦਾ ਜਨਮ ਹੋਇਆ ਸੀ?"
+                },
+                options: {
+                    english: ["Dwarka", "Mathura", "Ayodhya"],
+                    hindi: ["द्वारका", "मथुरा", "अयोध्या"],
+                    bengali: ["দ্বারকা", "মথুরা", "অযোধ্যা"],
+                    tamil: ["துவாரகா", "மதுரா", "அயோத்தியா"],
+                    telugu: ["ద్వారక", "మథుర", "అయోధ్య"],
+                    punjabi: ["ਦ੍ਵਾਰਕਾ", "ਮਥੁਰਾ", "ਅਯੋਧਿਆ"]
+                },
+                answer: "Ayodhya"
+            },
+            {
+                question: {
+                    english: "Who was the brother of Bhishma?",
+                    hindi: "भीष्म के भाई कौन थे?",
+                    bengali: "ভীষ্মের ভাই কে ছিলেন?",
+                    tamil: "பீஷ்மரின் சகோதரர் யார்?",
+                    telugu: "భీష్ముడి సోదరుడు ఎవరు?",
+                    punjabi: "ਭੀਸ਼ਮ ਦੇ ਭਰਾ ਕੌਣ ਸਨ?"
+                },
+                options: {
+                    english: ["Dhritarashtra", "Pandu", "Vichitravirya"],
+                    hindi: ["धृतराष्ट्र", "पांडु", "विचित्रवीर्य"],
+                    bengali: ["ধৃতরাষ্ট্র", "পাণ্ডু", "বিচিত্রবীর্য"],
+                    tamil: ["திருதராஷ்டிரன்", "பாண்டு", "விசித்திரவீரியன்"],
+                    telugu: ["ధృతరాష్ట్రుడు", "పాండు", "విచిత్రవీర్యుడు"],
+                    punjabi: ["ਧ੍ਰਿਤਰਾਸ਼ਟਰ", "ਪਾਂਡੂ", "ਵਿਚਿਤ੍ਰਵੀਰਯਾ"]
+                },
+                answer: "Vichitravirya"
+            },
+            {
+                question: {
+                    english: "What was the name of the demoness who tried to kidnap Sita in the forest?",
+                    hindi: "उस राक्षसी का क्या नाम था जिसने जंगल में सीता का अपहरण करने की कोशिश की थी?",
+                    bengali: "সেই রাক্ষসীর নাম কি ছিল যে বনে সীতাকে অপহরণ করার চেষ্টা করেছিল?",
+                    tamil: "காட்டில் சீதையை கடத்த முயன்ற அரக்கி பெயர் என்ன?",
+                    telugu: "అడవిలో సీతను అపహరించడానికి ప్రయత్నించిన రాక్షసి పేరు ఏమిటి?",
+                    punjabi: "ਉਸ ਰਾਖਸ਼ਸੀ ਦਾ ਨਾਮ ਕੀ ਸੀ ਜਿਸ ਨੇ ਜੰਗਲ ਵਿੱਚ ਸੀਤਾ ਨੂੰ ਅਗਵਾ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕੀਤੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Taataka", "Surpanakha", "Lankini"],
+                    hindi: ["ताड़का", "शूर्पणखा", "लंकिनी"],
+                    bengali: ["তাড়কা", "শূর্পণখা", "লঙ্কিনী"],
+                    tamil: ["தாடகை", "சூர்ப்பனகை", "லங்கினி"],
+                    telugu: ["తాటకి", "శూర్పణఖ", "లంకిణి"],
+                    punjabi: ["ਤਾੜਕਾ", "ਸ਼ੂਰਪਨਖਾ", "ਲੰਕਿਨੀ"]
+                },
+                answer: "Taataka"
+            },
+            {
+                question: {
+                    english: "In the Mahabharata, who was the son of Lord Shiva who fought with Arjuna?",
+                    hindi: "महाभारत में भगवान शिव के पुत्र कौन थे जिन्होंने अर्जुन से युद्ध किया था?",
+                    bengali: "মহাভারতে শিবের পুত্র কে ছিলেন যিনি অর্জুনের সাথে যুদ্ধ করেছিলেন?",
+                    tamil: "மகாபாரதத்தில் சிவபெருமானின் மகன் யார், அவர் அர்ஜுனருடன் போரிட்டார்?",
+                    telugu: "మహాభారతంలో అర్జునుడితో పోరాడిన శివుడి కుమారుడు ఎవరు?",
+                    punjabi: "ਮਹਾਭਾਰਤ ਵਿੱਚ ਭਗਵਾਨ ਸ਼ਿਵ ਦਾ ਪੁੱਤਰ ਕੌਣ ਸੀ ਜਿਸ ਨੇ ਅਰਜੁਨ ਨਾਲ ਯੁੱਧ ਕੀਤਾ?"
+                },
+                options: {
+                    english: ["Kartikeya", "Hanuman", "Vrishaketu"],
+                    hindi: ["कार्तिकेय", "हनुमान", "वृषकेतु"],
+                    bengali: ["কার্তিক", "হনুমান", "বৃষকেতু"],
+                    tamil: ["கார்த்திகேயன்", "அனுமன்", "பிரிஷகேது"],
+                    telugu: ["కార్తికేయ", "హనుమంతుడు", "వృషకేతుడు"],
+                    punjabi: ["ਕਾਰਤੀਕੇਯ", "ਹਨੂਮਾਨ", "ਵਰਿਸ਼ਕੇਤੁ"]
+                },
+                answer: "Kartikeya"
+            },
+            {
+                question: {
+                    english: "Which animal was Ravana's vahana (vehicle)?",
+                    hindi: "रावण का वाहन (वाहन) कौन सा जानवर था?",
+                    bengali: "রাবণের বাহন (যানবাহন) কী ছিল?",
+                    tamil: "இராவணனின் வாகனம் எது?",
+                    telugu: "రావణుడి వాహనం (వాహనం) ఏది?",
+                    punjabi: "ਰਾਵਣ ਦਾ ਵਾਹਨ (ਵਾਹਨ) ਕਿਹੜਾ ਜਾਨਵਰ ਸੀ?"
+                },
+                options: {
+                    english: ["Horse", "Pushpaka Vimana", "Elephant"],
+                    hindi: ["घोड़ा", "पुष्पक विमान", "हाथी"],
+                    bengali: ["ঘোড়া", "পুস্পক বিমান", "হাতি"],
+                    tamil: ["குதிரை", "புஷ்பக விமானம்", "யானை"],
+                    telugu: ["గుర్రం", "పుష్పక విమానం", "ఏనుగు"],
+                    punjabi: ["ਘੋੜਾ", "ਪੁਸ਼ਪਕ ਵਿਮਾਨ", "ਹਾਥੀ"]
+                },
+                answer: "Pushpaka Vimana"
+            },
+            {
+                question: {
+                    english: "What was the name of the kingdom of the Pandavas?",
+                    hindi: "पांडवों के राज्य का क्या नाम था?",
+                    bengali: "পাণ্ডবদের রাজ্যের নাম কি ছিল?",
+                    tamil: "பாண்டவர்களின் ராஜ்ஜியம் பெயர் என்ன?",
+                    telugu: "పాండవుల రాజ్యానికి పేరు ఏమిటి?",
+                    punjabi: "ਪਾਂਡਵਾਂ ਦੇ ਰਾਜ ਦਾ ਨਾਮ ਕੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Hastinapur", "Indraprastha", "Dwarka"],
+                    hindi: ["हस्तिनापुर", "इंद्रप्रस्थ", "द्वारका"],
+                    bengali: ["হস্তিনাপুর", "ইন্দ্রপ্রস্থ", "দ্বারকা"],
+                    tamil: ["ஹஸ்தினாபுரம்", "இந்திரப்பிரஸ்தம்", "துவாரகா"],
+                    telugu: ["హస్తినాపురం", "ఇంద్రప్రస్థ", "ద్వారಕ"],
+                    punjabi: ["ਹਸਤਿਨਾਪੁਰ", "ਇੰਦ੍ਰਪ੍ਰਸਥ", "ਦ੍ਵਾਰਕਾ"]
+                },
+                answer: "Indraprastha"
+            },
+            {
+                question: {
+                    english: "Who was the eldest of the Pandava brothers?",
+                    hindi: "पांडव भाइयों में सबसे बड़े कौन थे?",
+                    bengali: "পাণ্ডব ভাইদের মধ্যে জ্যেষ্ঠ কে ছিলেন?",
+                    tamil: "பாண்டவ சகோதரர்களில் மூத்தவர் யார்?",
+                    telugu: "పాండవ సోదరులలో పెద్దవాడు ఎవరు?",
+                    punjabi: "ਪਾਂਡਵ ਭਰਾਵਾਂ ਵਿੱਚੋਂ ਸਭ ਤੋਂ ਵੱਡਾ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Bhima", "Arjuna", "Yudhishthira"],
+                    hindi: ["भीम", "अर्जुन", "युधिष्ठिर"],
+                    bengali: ["ভীম", "অর্জুন", "যুধিষ্ঠির"],
+                    tamil: ["பீமன்", "அர்ஜுனன்", "யுதிஷ்டிரன்"],
+                    telugu: ["భీముడు", "అਰਜੁనుడు", "యుధిష్ਠਿరుడు"],
+                    punjabi: ["ਭੀਮ", "ਅਰਜੁਨ", "ਯੁਧਿਸ਼ਠਿਰ"]
+                },
+                answer: "Yudhishthira"
+            },
+            {
+                question: {
+                    english: "What was the name of the great warrior who was a close friend of Duryodhana?",
+                    hindi: "उस महान योद्धा का क्या नाम था जो दुर्योधन का घनिष्ठ मित्र था?",
+                    bengali: "সেই মহান যোদ্ধার নাম কী ছিল যিনি দুর্যোধনের ঘনিষ্ঠ বন্ধু ছিলেন?",
+                    tamil: "துரியோதனனின் நெருங்கிய நண்பராக இருந்த அந்த சிறந்த போர்வீரர் யார்?",
+                    telugu: "దుర్యోధనుడికి సన్నిహితుడైన గొప్ప యోధుని పేరు ఏమిటి?",
+                    punjabi: "ਉਸ ਮਹਾਨ ਯੋਧੇ ਦਾ ਨਾਮ ਕੀ ਸੀ ਜੋ ਦੁਰਯੋਧਨ ਦਾ ਨਜ਼ਦੀਕੀ ਮਿੱਤਰ ਸੀ?"
+                },
+                options: {
+                    english: ["Dronacharya", "Bhishma", "Karna"],
+                    hindi: ["द्रोणाचार्य", "भीष्म", "कर्ण"],
+                    bengali: ["দ্রোণাচার্য", "ভীষ্ম", "কর্ণ"],
+                    tamil: ["துரோணாச்சாரியார்", "பீஷ்மர்", "கர்ணன்"],
+                    telugu: ["ద్రోణాచార్య", "భీష్మ", "కర్ణ"],
+                    punjabi: ["ਦ੍ਰੋਣਾਚਾਰੀਆ", "ਭੀਸ਼ਮ", "ਕਰਣ"]
+                },
+                answer: "Karna"
+            },
+            {
+                question: {
+                    english: "Who was the father of Lord Rama?",
+                    hindi: "भगवान राम के पिता कौन थे?",
+                    bengali: "ভগবান রামের পিতা কে ছিলেন?",
+                    tamil: "இராமர் தந்தை யார்?",
+                    telugu: "శ్రీరాముని తండ్రి ఎవరు?",
+                    punjabi: "ਭਗਵਾਨ ਰਾਮ ਦੇ ਪਿਤਾ ਕੌਣ ਸਨ?"
+                },
+                options: {
+                    english: ["Janaka", "Dasharatha", "Vishwamitra"],
+                    hindi: ["जनक", "दशरथ", "विश्वामित्र"],
+                    bengali: ["জনক", "দশরথ", "বিশ্বামিত্র"],
+                    tamil: ["ஜனகர்", "தசரதன்", "விஸ்வாமித்திரர்"],
+                    telugu: ["జనకుడు", "దశరథుడు", "విశ్వామిత్రుడు"],
+                    punjabi: ["ਜਨਕਾ", "ਦਸ਼ਰਥਾ", "ਵਿਸ਼ਵਾਮਿਤ੍ਰ"]
+                },
+                answer: "Dasharatha"
+            },
+            {
+                question: {
+                    english: "What was the name of the king of Lanka?",
+                    hindi: "लंका के राजा का क्या नाम था?",
+                    bengali: "লঙ্কার রাজার নাম কি ছিল?",
+                    tamil: "இலங்கை அரசர் பெயர் என்ன?",
+                    telugu: "లంక రాజు పేరు ఏమిటి?",
+                    punjabi: "ਲੰਕਾ ਦੇ ਰਾਜਾ ਦਾ ਨਾਮ ਕੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Vibhishana", "Indrajit", "Ravana"],
+                    hindi: ["विभीषण", "इंद्रजीत", "रावण"],
+                    bengali: ["বিভীষণ", "ইন্দ্রজিৎ", "রাবণ"],
+                    tamil: ["விபீஷணன்", "இந்திரஜித்", "இராவணன்"],
+                    telugu: ["విభీషణుడు", "ఇంద్రజిత్తు", "రావణుడు"],
+                    punjabi: ["ਵਿਭੀਸ਼ਣ", "ਇੰਦ੍ਰਜੀਤ", "ਰਾਵਣ"]
+                },
+                answer: "Ravana"
+            },
+            {
+                question: {
+                    english: "Who was the mother of Karna?",
+                    hindi: "कर्ण की माता कौन थीं?",
+                    bengali: "কর্ণের মাতা কে ছিলেন?",
+                    tamil: "கர்ணனின் தாய் யார்?",
+                    telugu: "కర్ణుని తల్లి ఎవరు?",
+                    punjabi: "ਕਰਣ ਦੀ ਮਾਤਾ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Kunti", "Gandhari", "Madri"],
+                    hindi: ["कुंती", "गांधारी", "माद्री"],
+                    bengali: ["কুন্তী", "গান্ধারী", "মাদ্রী"],
+                    tamil: ["குந்தி", "காந்தாரி", "மாத்ரி"],
+                    telugu: ["కుంతి", "గాంధారి", "మాਦ్రి"],
+                    punjabi: ["ਕੁੰਤੀ", "ਗਾਂਧਾਰੀ", "ਮਾਦ੍ਰੀ"]
+                },
+                answer: "Kunti"
+            },
+            {
+                question: {
+                    english: "What was the name of the monkey who helped Rama find Sita?",
+                    hindi: "उस वानर का क्या नाम था जिसने राम को सीता को खोजने में मदद की थी?",
+                    bengali: "সেই বানরের নাম কি ছিল যে রামকে সীতাকে খুঁজে পেতে সাহায্য করেছিলেন?",
+                    tamil: "இராமருக்கு சீதையை கண்டுபிடிக்க உதவிய குரங்கு பெயர் என்ன?",
+                    telugu: "రాముడికి సీతను కనుగొనడంలో సహాయం చేసిన కోతి పేరు ఏమిటి?",
+                    punjabi: "ਉਸ ਬਾਂਦਰ ਦਾ ਨਾਮ ਕੀ ਸੀ ਜਿਸ ਨੇ ਰਾਮ ਨੂੰ ਸੀਤਾ ਨੂੰ ਲੱਭਣ ਵਿੱਚ ਮਦਦ ਕੀਤੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Jambavan", "Angad", "Hanuman"],
+                    hindi: ["जाम्बवान", "अंगद", "हनुमान"],
+                    bengali: ["জাম্ববান", "অঙ্গদ", "হনুমান"],
+                    tamil: ["ஜாம்பவான்", "அங்கதன்", "அனுமன்"],
+                    telugu: ["జాంబవంతుడు", "అంగదుడు", "హనుమంతుడు"],
+                    punjabi: ["ਜਾਂਬਵਾਨ", "ਅੰਗਦ", "ਹਨੂਮਾਨ"]
+                },
+                answer: "Hanuman"
+            },
+            {
+                question: {
+                    english: "Which epic is known for the Bhagavad Gita?",
+                    hindi: "भगवद गीता किस महाकाव्य के लिए जानी जाती है?",
+                    bengali: "ভগবদ্গীতা কোন মহাকাব্যের জন্য পরিচিত?",
+                    tamil: "பகவத் கீதை எந்த காவியத்திற்கு அறியப்படுகிறது?",
+                    telugu: "భగవద్గీత ఏ మహాకావ్యానికి ప్రసిద్ధి చెందింది?",
+                    punjabi: "ਭਗਵਦ ਗੀਤਾ ਕਿਹੜੇ ਮਹਾਂਕਾਵਿ ਲਈ ਜਾਣੀ ਜਾਂਦੀ ਹੈ?"
+                },
+                options: {
+                    english: ["Ramayana", "Mahabharata", "Vedas"],
+                    hindi: ["रामायण", "महाभारत", "वेद"],
+                    bengali: ["রামায়ণ", "মহাভারত", "বেদ"],
+                    tamil: ["இராமாயணம்", "மகாபாரதம்", "வேதங்கள்"],
+                    telugu: ["రామాయణం", "మహాభారతం", "వేదాలు"],
+                    punjabi: ["ਰਾਮਾਇਣ", "ਮਹਾਭਾਰਤ", "ਵੇਦ"]
+                },
+                answer: "Mahabharata"
+            },
+            {
+                question: {
+                    english: "Who was the wife of Krishna?",
+                    hindi: "कृष्ण की पत्नी कौन थीं?",
+                    bengali: "কৃষ্ণের স্ত্রী কে ছিলেন?",
+                    tamil: "கிருஷ்ணர் மனைவி யார்?",
+                    telugu: "కృష్ణుని భార్య ఎవరు?",
+                    punjabi: "ਕ੍ਰਿਸ਼ਨ ਦੀ ਪਤਨੀ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Sita", "Radha", "Rukmini"],
+                    hindi: ["सीता", "राधा", "रुक्मिणी"],
+                    bengali: ["সীতা", "রাধা", "রুক্মিণী"],
+                    tamil: ["சீதா", "ராதா", "ருக்மணி"],
+                    telugu: ["సీత", "ਰਾਧਾ", "రుਕ੍ਮਿਣੀ"],
+                    punjabi: ["ਸੀਤਾ", "ਰਾਧਾ", "ਰੁਕਮਿਣੀ"]
+                },
+                answer: "Rukmini"
+            },
+            {
+                question: {
+                    english: "What was the name of the demon who was killed by Lord Rama in his first battle?",
+                    hindi: "पहले युद्ध में भगवान राम द्वारा मारे गए राक्षस का क्या नाम था?",
+                    bengali: "প্রথম যুদ্ধে ভগবান রাম কর্তৃক নিহত রাক্ষসের নাম কি ছিল?",
+                    tamil: "இராமர் முதல் போரில் கொன்ற அரக்கன் பெயர் என்ன?",
+                    telugu: "మొదటి యుద్ధంలో శ్రీరాముడు చంపిన రాక్షసుని పేరు ఏమిటి?",
+                    punjabi: "ਪਹਿਲੀ ਲੜਾਈ ਵਿੱਚ ਭਗਵਾਨ ਰਾਮ ਦੁਆਰਾ ਮਾਰੇ ਗਏ ਰਾਖਸ਼ਸ ਦਾ ਨਾਮ ਕੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Taataka", "Maricha", "Subahu"],
+                    hindi: ["ताड़का", "मारीच", "सुबाहु"],
+                    bengali: ["তাড়কা", "মারীচ", "সুবাউ"],
+                    tamil: ["தாடகை", "மாரிச்சன்", "சுபாகு"],
+                    telugu: ["తాటకి", "మారీచుడు", "సుబాహు"],
+                    punjabi: ["ਤਾੜਕਾ", "ਮਾਰੀਚ", "ਸੁਬਾਹੂ"]
+                },
+                answer: "Taataka"
+            },
+            {
+                question: {
+                    english: "Who was the son of Dronacharya?",
+                    hindi: "द्रोणाचार्य के पुत्र कौन थे?",
+                    bengali: "দ্রোণাচার্যের পুত্র কে ছিলেন?",
+                    tamil: "துரோணாச்சாரியாரின் மகன் யார்?",
+                    telugu: "ద్రోణాచార్యుని కుమారుడు ఎవరు?",
+                    punjabi: "ਦ੍ਰੋਣਾਚਾਰੀਆ ਦਾ ਪੁੱਤਰ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Ashwatthama", "Karna", "Kripacharya"],
+                    hindi: ["अश्वत्थामा", "कर्ण", "कृपाचार्य"],
+                    bengali: ["অশ্বত্থামা", "কর্ণ", "কৃপাচার্য"],
+                    tamil: ["அஸ்வத்தாமன்", "கர்ணன்", "கிருபாச்சாரியார்"],
+                    telugu: ["అశ్వత్థామ", "కర్ణుడు", "కృपाਚਾਰ्य"],
+                    punjabi: ["ਅਸ਼ਵਤਥਾਮਾ", "ਕਰਣ", "ਕ੍ਰਿਪਾਚਾਰੀਆ"]
+                },
+                answer: "Ashwatthama"
+            },
+            {
+                question: {
+                    english: "In the Ramayana, who was the brother of Ravana who sided with Rama?",
+                    hindi: "रामायण में, रावण का वह भाई कौन था जिसने राम का साथ दिया?",
+                    bengali: "রামায়ণে, রাবণের সেই ভাই কে ছিলেন যিনি রামের পক্ষ নিয়েছিলেন?",
+                    tamil: "இராமாயணத்தில், இராவணன் சகோதரர் யார், அவர் இராமர் பக்கம் சேர்ந்தார்?",
+                    telugu: "రామాయణంలో, రాముడితో చేరిన రావణుడి సోదరుడు ఎవరు?",
+                    punjabi: "ਰਾਮਾਇਣ ਵਿੱਚ, ਰਾਵਣ ਦਾ ਉਹ ਭਰਾ ਕੌਣ ਸੀ ਜਿਸ ਨੇ ਰਾਮ ਦਾ ਸਾਥ ਦਿੱਤਾ?"
+                },
+                options: {
+                    english: ["Kumbhakarna", "Vibhishana", "Indrajit"],
+                    hindi: ["कुंभकर्ण", "विभीषण", "इंद्रजीत"],
+                    bengali: ["কুম্ভকর্ণ", "বিভীষণ", "ইন্দ্রজিৎ"],
+                    tamil: ["கும்பகர்ணன்", "விபீஷணன்", "இந்திரஜித்"],
+                    telugu: ["కుంభకర్ణుడు", "విభీషణుడు", "ఇంద్రజిత్తు"],
+                    punjabi: ["ਕੁੰਭਕਰਣ", "ਵਿਭੀਸ਼ਣ", "ਇੰਦ੍ਰਜੀਤ"]
+                },
+                answer: "Vibhishana"
+            },
+            {
+                question: {
+                    english: "Which celestial weapon did Arjuna use to defeat Karna?",
+                    hindi: "अर्जुन ने कर्ण को हराने के लिए किस दिव्य हथियार का उपयोग किया?",
+                    bengali: "কর্ণকে পরাজিত করতে অর্জুন কোন ঐশ্বরিক অস্ত্র ব্যবহার করেছিলেন?",
+                    tamil: "அர்ஜுனன் கர்ணனை வெல்ல எந்த வான ஆயுதத்தைப் பயன்படுத்தினார்?",
+                    telugu: "కర్ణుని ఓడించడానికి అర్జునుడు ఏ దివ్య ఆయుధం ఉపయోగించాడు?",
+                    punjabi: "ਅਰਜੁਨ ਨੇ ਕਰਨ ਨੂੰ ਹਰਾਉਣ ਲਈ ਕਿਹੜੇ ਸੈਨਿਕ ਹਥਿਆਰ ਦੀ ਵਰਤੋਂ ਕੀਤੀ?"
+                },
+                options: {
+                    english: ["Brahmastra", "Agneyastra", "Anjalika"],
+                    hindi: ["ब्रह्मास्त्र", "आग्नेयास्त्र", "अंजलिका"],
+                    bengali: ["ব্রহ্মাস্ত্র", "আগ্নேயাস্ত্র", "অঞ্জলিকা"],
+                    tamil: ["பிரம்மாஸ்திரம்", "ஆக்னேயாஸ்திரம்", "அஞ்சலிகா"],
+                    telugu: ["బ్రహ్మాస్త్రం", "ఆగ్నేయాస్త్రం", "అంజలిక"],
+                    punjabi: ["ਬ੍ਰਹ੍ਮਾਸ੍ਤ੍ਰ", "ਆਗ੍ਨੇਯਾਸ੍ਤ੍ਰ", "ਅਨ੍ਜਲਿਕਾ"]
+                },
+                answer: "Anjalika"
+            },
+            {
+                question: {
+                    english: "What was the name of the powerful divine bow that Lord Shiva gave to Lord Parashurama?",
+                    hindi: "भगवान शिव ने भगवान परशुराम को जो शक्तिशाली दिव्य धनुष दिया था, उसका क्या नाम था?",
+                    bengali: "শিব পরশুরামকে যে শক্তিশালী ঐশ্বরিক ধনুক দিয়েছিলেন, তার নাম কি ছিল?",
+                    tamil: "சிவபெருமான் பரசுராமருக்கு கொடுத்த தெய்வீக வில்லின் பெயர் என்ன?",
+                    telugu: "శివుడు పరశురామునికి ఇచ్చిన శక్తివంతమైన దివ్య ధనుస్సు పేరు ఏమిటి?",
+                    punjabi: "ਭਗਵਾਨ ਸ਼ਿਵ ਨੇ ਭਗਵਾਨ ਪਰਸ਼ੁਰਾਮ ਨੂੰ ਜੋ ਸ਼ਕਤੀਸ਼ਾਲੀ ਦਿਵਯ ਕਮਾਨ ਦਿੱਤਾ ਸੀ, ਉਸ ਦਾ ਨਾਮ ਕੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Pinaka", "Shiva Dhanush", "Gandiva"],
+                    hindi: ["पिनाक", "शिव धनुष", "गांडीव"],
+                    bengali: ["পিণাক", "শিব ধনু", "গান্ধীব"],
+                    tamil: ["பிணாக", "சிவா தனுஷ்", "காண்டீபம்"],
+                    telugu: ["పినాక", "శివ ధనుస్సు", "గాండీవ"],
+                    punjabi: ["ਪਿਨਾਕ", "ਸ਼ਿਵ ਧਨੁਸ਼", "ਗਾਂਡੀਵਾ"]
+                },
+                answer: "Pinaka"
+            },
+            {
+                question: {
+                    english: "Who was the youngest of the Pandava brothers?",
+                    hindi: "पांडव भाइयों में सबसे छोटे कौन थे?",
+                    bengali: "পাণ্ডব ভাইদের মধ্যে কনিষ্ঠ কে ছিলেন?",
+                    tamil: "பாண்டவ சகோதரர்களில் இளையவர் யார்?",
+                    telugu: "పాండవ సోదరులలో చిన్నవాడు ఎవరు?",
+                    punjabi: "ਪਾਂਡਵ ਭਰਾਵਾਂ ਵਿੱਚੋਂ ਸਭ ਤੋਂ ਛੋਟਾ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Nakula", "Sahadeva", "Arjuna"],
+                    hindi: ["नकुल", "सहदेव", "अर्जुन"],
+                    bengali: ["নকুল", "সহদেব", "অর্জুন"],
+                    tamil: ["நகுலன்", "சகாதேவன்", "அர்ஜுனன்"],
+                    telugu: ["నకులుడు", "సహదేవుడు", "అర్జునుడు"],
+                    punjabi: ["ਨਕੁਲ", "ਸਹਿਦੇਵ", "ਅਰਜੁਨ"]
+                },
+                answer: "Sahadeva"
+            },
+            {
+                question: {
+                    english: "In the Mahabharata, who was the mother of the Kauravas?",
+                    hindi: "महाभारत में कौरवों की माता कौन थीं?",
+                    bengali: "মহাভারতে কৌরবদের মাতা কে ছিলেন?",
+                    tamil: "மகாபாரதத்தில் கௌரவர்களின் தாய் யார்?",
+                    telugu: "మహాభారతంలో కౌరవుల తల్లి ఎవరు?",
+                    punjabi: "ਮਹਾਭਾਰਤ ਵਿੱਚ ਕੌਰਵਾਂ ਦੀ ਮਾਤਾ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Kunti", "Gandhari", "Madri"],
+                    hindi: ["कुंती", "गांधारी", "माद्री"],
+                    bengali: ["কুন্তী", "গান্ধারী", "মাদ্রী"],
+                    tamil: ["குந்தி", "காந்தாரி", "மாத்ரி"],
+                    telugu: ["కుంతి", "గాంధారి", "మాਦ్రి"],
+                    punjabi: ["ਕੁੰਤੀ", "ਗਾਂਧਾਰੀ", "ਮਾਦ੍ਰੀ"]
+                },
+                answer: "Gandhari"
+            },
+            {
+                question: {
+                    english: "Which city was the capital of the Pandavas' kingdom?",
+                    hindi: "पांडवों के राज्य की राजधानी कौन सा शहर था?",
+                    bengali: "পাণ্ডবদের রাজ্যের রাজধানী কোন শহর ছিল?",
+                    tamil: "பாண்டவர்களின் ராஜ்யத்தின் தலைநகரம் எது?",
+                    telugu: "పాండవుల రాజ్యానికి రాజధాని ఏ నగరం?",
+                    punjabi: "ਪਾਂਡਵਾਂ ਦੇ ਰਾਜ ਦੀ ਰਾਜਧਾਨੀ ਕਿਹੜਾ ਸ਼ਹਿਰ ਸੀ?"
+                },
+                options: {
+                    english: ["Hastinapur", "Indraprastha", "Dwarka"],
+                    hindi: ["हस्तिनापुर", "इंद्रप्रस्थ", "द्वारका"],
+                    bengali: ["হস্তিনাপুর", "ইন্দ্রপ্রস্থ", "দ্বারকা"],
+                    tamil: ["ஹஸ்தினாபுரம்", "இந்திரப்பிரஸ்தம்", "துவாரகா"],
+                    telugu: ["హస్తినాపురం", "ఇంద్రప్రస్థ", "ద్వారక"],
+                    punjabi: ["ਹਸਤਿਨਾਪੁਰ", "ਇੰਦ੍ਰਪ੍ਰਸਥ", "ਦ੍ਵਾਰਕਾ"]
+                },
+                answer: "Indraprastha"
+            },
+            {
+                question: {
+                    english: "What was the name of the divine elephant of Indra?",
+                    hindi: "इंद्र के दिव्य हाथी का क्या नाम था?",
+                    bengali: "ইন্দ্রের ঐশ্বরিক হাতির নাম কি ছিল?",
+                    tamil: "இந்திரனின் தெய்வீக யானை பெயர் என்ன?",
+                    telugu: "ఇంద్రుని దివ్య ఏనుగు పేరు ఏమిటి?",
+                    punjabi: "ਇੰਦ੍ਰ ਦੇ ਦਿਵਯ ਹਾਥੀ ਦਾ ਨਾਮ ਕੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Airavata", "Gajendra", "Suprateeka"],
+                    hindi: ["ऐरावत", "गजेंद्र", "सुप्रतीका"],
+                    bengali: ["ঐরাবত", "গজেন্দ্র", "সুপ্রতীক"],
+                    tamil: ["ஐராவதம்", "கஜேந்திரன்", "சுப்ரதீக"],
+                    telugu: ["ఐరావతం", "గజేంద్ర", "సుప్రతీక"],
+                    punjabi: ["ਐਰਾਵਤ", "ਗਜੇਂਦ੍ਰ", "ਸੁਪ੍ਰਤੀਕਾ"]
+                },
+                answer: "Airavata"
+            },
+            {
+                question: {
+                    english: "Who was the sister of Lord Krishna?",
+                    hindi: "भगवान कृष्ण की बहन कौन थीं?",
+                    bengali: "ভগবান কৃষ্ণের বোন কে ছিলেন?",
+                    tamil: "கிருஷ்ணர் சகோதரி யார்?",
+                    telugu: "శ్రీకృష్ణుని సోదரி ఎవరు?",
+                    punjabi: "ਭਗਵਾਨ ਕ੍ਰਿਸ਼ਨ ਦੀ ਭੈਣ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Satyabhama", "Subhadra", "Radha"],
+                    hindi: ["सत्यभामा", "सुभद्रा", "राधा"],
+                    bengali: ["সত্যভামা", "সুভদ্রা", "রাধা"],
+                    tamil: ["சத்யபாமா", "சுபத்ரா", "ராதா"],
+                    telugu: ["సత్యభామ", "సుభద్ర", "రాధ"],
+                    punjabi: ["ਸਤ੍ਯਭਾਮਾ", "ਸੁਭਦ੍ਰਾ", "ਰਾਧਾ"]
+                },
+                answer: "Subhadra"
+            },
+            {
+                question: {
+                    english: "Which bird tried to save Sita from Ravana?",
+                    hindi: "किस पक्षी ने रावण से सीता को बचाने की कोशिश की थी?",
+                    bengali: "কোন পাখি রাবণের হাত থেকে সীতাকে বাঁচানোর চেষ্টা করেছিল?",
+                    tamil: "இராவணனிடமிருந்து சீதையை காப்பாற்ற முயன்ற பறவை எது?",
+                    telugu: "రావణుడి నుండి సీతను కాపాడటానికి ఏ పక్షి ప్రయత్నించింది?",
+                    punjabi: "ਕਿਹੜੇ ਪੰਛੀ ਨੇ ਰਾਵਣ ਤੋਂ ਸੀਤਾ ਨੂੰ ਬਚਾਉਣ ਦੀ ਕੋਸ਼ਿਸ਼ ਕੀਤੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Garuda", "Sampati", "Jatayu"],
+                    hindi: ["गरुड़", "संपति", "जटायु"],
+                    bengali: ["গরুড়", "সম্পতি", "জটায়ু"],
+                    tamil: ["கருடா", "சம்பதி", "ஜடாயு"],
+                    telugu: ["గరుడ", "సంపాతి", "జటాయువు"],
+                    punjabi: ["ਗਰੁੜਾ", "ਸੰਪਤੀ", "ਜਟਾਯੂ"]
+                },
+                answer: "Jatayu"
+            },
+            {
+                question: {
+                    english: "What was the name of the blind king of Hastinapur?",
+                    hindi: "हस्तिनापुर के अंधे राजा का क्या नाम था?",
+                    bengali: "হস্তিনাপুরের অন্ধ রাজার নাম কি ছিল?",
+                    tamil: "ஹஸ்தினாபுரத்தின் குருட்டு அரசர் பெயர் என்ன?",
+                    telugu: "హస్తినాపురం అంధరాజు పేరు ఏమిటి?",
+                    punjabi: "ਹਸਤਿਨਾਪੁਰ ਦੇ ਅੰਨ੍ਹੇ ਰਾਜਾ ਦਾ ਨਾਮ ਕੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Shantanu", "Dhritarashtra", "Pandu"],
+                    hindi: ["शांतनु", "धृतराष्ट्र", "पांडु"],
+                    bengali: ["শন্তনু", "ধৃতরাষ্ট্র", "পাণ্ডু"],
+                    tamil: ["சாந்தனு", "திருதராஷ்டிரன்", "பாண்டு"],
+                    telugu: ["శంతను", "ధృతరాష్ట్రుడు", "పాండు"],
+                    punjabi: ["ਸ਼ਾਂਤਨੂ", "ਧ੍ਰਿਤਰਾਸ਼ਟਰ", "ਪਾਂਡੂ"]
+                },
+                answer: "Dhritarashtra"
+            },
+            {
+                question: {
+                    english: "Which of the Pandavas was known as 'Gudakesha'?",
+                    hindi: "पांडवों में से किसे 'गुडाकेश' के नाम से जाना जाता था?",
+                    bengali: "পাণ্ডবদের মধ্যে কে 'গুড়াকেশ' নামে পরিচিত ছিলেন?",
+                    tamil: "பாண்டவர்களில் 'குடகேசா' என்று அழைக்கப்படுபவர் யார்?",
+                    telugu: "పాండవులలో 'గుడాకేశా' అని ఎవరిని పిలిచేవారు?",
+                    punjabi: "ਪਾਂਡਵਾਂ ਵਿੱਚੋਂ ਕਿਸਨੂੰ 'ਗੁਡਾਕੇਸ਼ਾ' ਕਿਹਾ ਜਾਂਦਾ ਸੀ?"
+                },
+                options: {
+                    english: ["Arjuna", "Bhima", "Yudhishthira"],
+                    hindi: ["अर्जुन", "भीम", "युधिष्ठिर"],
+                    bengali: ["অর্জুন", "ভীম", "যুধিষ্ঠির"],
+                    tamil: ["அர்ஜுனன்", "பீமன்", "யுதிஷ்டிரன்"],
+                    telugu: ["అర్జునుడు", "భీముడు", "యుధిష్ఠిరుడు"],
+                    punjabi: ["ਅਰਜੁਨ", "ਭੀਮ", "ਯੁਧਿਸ਼ਠਿਰ"]
+                },
+                answer: "Arjuna"
+            },
+            {
+                question: {
+                    english: "Who was the son of Gandhari?",
+                    hindi: "गांधारी के पुत्र कौन थे?",
+                    bengali: "গান্ধারীর পুত্র কে ছিলেন?",
+                    tamil: "காந்தாரியின் மகன் யார்?",
+                    telugu: "గాంధారి కుమారుడు ఎవరు?",
+                    punjabi: "ਗਾਂਧਾਰੀ ਦਾ ਪੁੱਤਰ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Dushasana", "Duryodhana", "Vichitravirya"],
+                    hindi: ["दुःशासन", "दुर्योधन", "विचित्रवीर्य"],
+                    bengali: ["দুঃশাসন", "দুর্যোধন", "বিচিত্রবীর্য"],
+                    tamil: ["துச்சாதனன்", "துரியோதனன்", "விசித்திரவீரியன்"],
+                    telugu: ["దుశ్శాసనుడు", "దుర్యోధనుడు", "విచిత్రవీర్యుడు"],
+                    punjabi: ["ਦੁਹਸ਼ਾਸਨ", "ਦੁਰਯੋਧਨ", "ਵਿਚਿਤ੍ਰਵੀਰਯਾ"]
+                },
+                answer: "Duryodhana"
+            },
+            {
+                question: {
+                    english: "In the Ramayana, who was the son of Lord Vayu?",
+                    hindi: "रामायण में, वायु देवता के पुत्र कौन थे?",
+                    bengali: "রামায়ণে, বায়ুর পুত্র কে ছিলেন?",
+                    tamil: "இராமாயணத்தில், வாயுவின் மகன் யார்?",
+                    telugu: "రామాయణంలో, వాయుదేవుని కుమారుడు ఎవరు?",
+                    punjabi: "ਰਾਮਾਇਣ ਵਿੱਚ, ਵਾਯੂ ਦੇਵਤਾ ਦਾ ਪੁੱਤਰ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Jatayu", "Hanuman", "Vali"],
+                    hindi: ["जटायु", "हनुमान", "वाली"],
+                    bengali: ["জটায়ু", "হনুমান", "বালি"],
+                    tamil: ["ஜடாயு", "அனுமன்", "வாலி"],
+                    telugu: ["జటాయువు", "హనుమంతుడు", "వాలి"],
+                    punjabi: ["ਜਟਾਯੂ", "ਹਨੂਮਾਨ", "ਵਾਲੀ"]
+                },
+                answer: "Hanuman"
+            },
+            {
+                question: {
+                    english: "What was the name of the divine discus of Lord Vishnu?",
+                    hindi: "भगवान विष्णु के दिव्य चक्र का क्या नाम था?",
+                    bengali: "ভগবান বিষ্ণুর ঐশ্বরিক চক্রের নাম কী ছিল?",
+                    tamil: "விஷ்ணுவின் தெய்வீக சக்கரம் பெயர் என்ன?",
+                    telugu: "విష్ణువు దివ్య చక్రం పేరు ఏమిటి?",
+                    punjabi: "ਭਗਵਾਨ ਵਿਸ਼ਣੂ ਦੇ ਦਿਵਯ ਚੱਕਰ ਦਾ ਨਾਮ ਕੀ ਸੀ?"
+                },
+                options: {
+                    english: ["Pinaka", "Sudarshana Chakra", "Kaumodaki"],
+                    hindi: ["पिनाक", "सुदर्शन चक्र", "कौमोदकी"],
+                    bengali: ["পিণাক", "সুদর্শন চক্র", "কৌমোদকী"],
+                    tamil: ["பிணாக", "சுதர்சனா சக்கரம்", "கௌமோதகி"],
+                    telugu: ["పినాక", "సుదర్శన చక్రం", "కౌమోదకి"],
+                    punjabi: ["ਪਿਨਾਕ", "ਸੁਦਰਸ਼ਨਾ ਚਕ੍ਰ", "ਕੌਮੋਦਕੀ"]
+                },
+                answer: "Sudarshana Chakra"
+            },
+            {
+                question: {
+                    english: "Who was the guru of Lord Krishna and Balarama?",
+                    hindi: "भगवान कृष्ण और बलराम के गुरु कौन थे?",
+                    bengali: "ভগবান কৃষ্ণ ও বলরামের গুরু কে ছিলেন?",
+                    tamil: "கிருஷ்ணர் மற்றும் பலராமர் குரு யார்?",
+                    telugu: "శ్రీకృష్ణుని, బలరాముడికి గురువు ఎవరు?",
+                    punjabi: "ਭਗਵਾਨ ਕ੍ਰਿਸ਼ਨ ਅਤੇ ਬਲਰਾਮ ਦੇ ਗੁਰੂ ਕੌਣ ਸਨ?"
+                },
+                options: {
+                    english: ["Vishwamitra", "Sandipani", "Vashistha"],
+                    hindi: ["विश्वामित्र", "सांदीपनि", "वशिष्ठ"],
+                    bengali: ["বিশ্বামিত্র", "সন্দীপনি", "বশিষ্ঠ"],
+                    tamil: ["விஸ்வாமித்திரர்", "சந்தீபனி", "வசிஷ்டர்"],
+                    telugu: ["విశ్వామిత్రుడు", "సాందీపని", "వశిష్ఠుడు"],
+                    punjabi: ["ਵਿਸ਼ਵਾਮਿਤ੍ਰ", "ਸਾਂਦੀਪਨੀ", "ਵਸ਼ਿਸ਼ਠ"]
+                },
+                answer: "Sandipani"
+            },
+            {
+                question: {
+                    english: "In the Mahabharata, who was the queen of Indraprastha?",
+                    hindi: "महाभारत में इंद्रप्रस्थ की रानी कौन थीं?",
+                    bengali: "মহাভারতে ইন্দ্রপ্রস্থের রানী কে ছিলেন?",
+                    tamil: "மகாபாரதத்தில் இந்திரப்பிரஸ்தத்தின் ராணி யார்?",
+                    telugu: "మహాభారతంలో ఇంద్రప్రస్థ రాణి ఎవరు?",
+                    punjabi: "ਮਹਾਭਾਰਤ ਵਿੱਚ ਇੰਦ੍ਰਪ੍ਰਸਥ ਦੀ ਰਾਣੀ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Gandhari", "Draupadi", "Kunti"],
+                    hindi: ["गांधारी", "द्रौपदी", "कुंती"],
+                    bengali: ["গান্ধারী", "দ্রৌপদী", "কুন্তী"],
+                    tamil: ["காந்தாரி", "திரௌபதி", "குந்தி"],
+                    telugu: ["గాంధారి", "ద్రౌపది", "కుంతి"],
+                    punjabi: ["ਗਾਂਧਾਰੀ", "ਦ੍ਰੌਪਦੀ", "ਕੁੰਤੀ"]
+                },
+                answer: "Draupadi"
+            },
+            {
+                question: {
+                    english: "Who was the father of Lakshmana?",
+                    hindi: "लक्ष्मण के पिता कौन थे?",
+                    bengali: "লক্ষ্মণের পিতা কে ছিলেন?",
+                    tamil: "இலக்குமணன் தந்தை யார்?",
+                    telugu: "లక్ష్మణుడి తండ్రి ఎవరు?",
+                    punjabi: "ਲਕਸ਼ਮਣ ਦੇ ਪਿਤਾ ਕੌਣ ਸਨ?"
+                },
+                options: {
+                    english: ["Dasharatha", "Janaka", "Vishwamitra"],
+                    hindi: ["दशरथ", "जनक", "विश्वामित्र"],
+                    bengali: ["দশরথ", "জনক", "বিশ্বামিত্র"],
+                    tamil: ["தசரதன்", "ஜனகர்", "விஸ்வாமித்திரர்"],
+                    telugu: ["దశరథుడు", "జనకుడు", "విశ్వామిత్రుడు"],
+                    punjabi: ["ਦਸ਼ਰਥਾ", "ਜਨਕਾ", "ਵਿਸ਼ਵਾਮਿਤ੍ਰ"]
+                },
+                answer: "Dasharatha"
+            },
+            {
+                question: {
+                    english: "What was the name of the demon who was killed by Lord Rama and Lakshmana in the forest?",
+                    hindi: "उस राक्षस का क्या नाम था जिसे भगवान राम और लक्ष्मण ने जंगल में मारा था?",
+                    bengali: "সেই রাক্ষসের নাম কি ছিল যাকে ভগবান রাম ও লক্ষ্মণ বনে হত্যা করেছিলেন?",
+                    tamil: "இராமர் மற்றும் இலக்குமணன் காட்டில் கொன்ற அரக்கன் பெயர் என்ன?",
+                    telugu: "శ్రీరాముడు, లక్ష్మణుడు అడవిలో చంపిన రాక్షసుని పేరు ఏమిటి?",
+                    punjabi: "ਉਸ ਰਾਖਸ਼ਸ ਦਾ ਨਾਮ ਕੀ ਸੀ ਜਿਸਨੂੰ ਭਗਵਾਨ ਰਾਮ ਅਤੇ ਲਕਸ਼ਮਣ ਨੇ ਜੰਗਲ ਵਿੱਚ ਮਾਰਿਆ ਸੀ?"
+                },
+                options: {
+                    english: ["Taataka", "Maricha", "Subahu"],
+                    hindi: ["ताड़का", "मारीच", "सुबाहु"],
+                    bengali: ["তাড়কা", "মারীচ", "সুবাউ"],
+                    tamil: ["தாடகை", "மாரிச்சன்", "சுபாகு"],
+                    telugu: ["తాటకి", "మారీచుడు", "సుబాహు"],
+                    punjabi: ["ਤਾੜਕਾ", "ਮਾਰੀਚ", "ਸੁਬਾਹੂ"]
+                },
+                answer: "Subahu"
+            },
+            {
+                question: {
+                    english: "Which epic is considered to be the longest poem ever written?",
+                    hindi: "किस महाकाव्य को अब तक की सबसे लंबी कविता माना जाता है?",
+                    bengali: "কোন মহাকাব্যটি লেখা হয়েছে সবচেয়ে দীর্ঘ কবিতা হিসেবে বিবেচিত হয়?",
+                    tamil: "எந்த காவியம் இதுவரை எழுதப்பட்ட மிக நீண்ட கவிதை என்று கருதப்படுகிறது?",
+                    telugu: "ఏ మహాకావ్యం ఇప్పటి వరకు రచించిన అత్యంత పొడవైన కవితగా పరిగణించబడుతుంది?",
+                    punjabi: "ਕਿਹੜੇ ਮਹਾਂਕਾਵਿ ਨੂੰ ਅੱਜ ਤੱਕ ਦੀ ਸਭ ਤੋਂ ਲੰਬੀ ਕਵਿਤਾ ਮੰਨਿਆ ਜਾਂਦਾ ਹੈ?"
+                },
+                options: {
+                    english: ["Ramayana", "Mahabharata", "Vedas"],
+                    hindi: ["रामायण", "महाभारत", "वेद"],
+                    bengali: ["রামায়ণ", "মহাভারত", "বেদ"],
+                    tamil: ["இராமாயணம்", "மகாபாரதம்", "வேதங்கள்"],
+                    telugu: ["రామాయణం", "మహాభారతం", "వేదాలు"],
+                    punjabi: ["ਰਾਮਾਇਣ", "ਮਹਾਭਾਰਤ", "ਵੇਦ"]
+                },
+                answer: "Mahabharata"
+            },
+            {
+                question: {
+                    english: "Who was the wife of Arjuna?",
+                    hindi: "अर्जुन की पत्नी कौन थीं?",
+                    bengali: "অর্জুনের স্ত্রী কে ছিলেন?",
+                    tamil: "அர்ஜுனன் மனைவி யார்?",
+                    telugu: "అర్జునుడి భార్య ఎవరు?",
+                    punjabi: "ਅਰਜੁਨ ਦੀ ਪਤਨੀ ਕੌਣ ਸੀ?"
+                },
+                options: {
+                    english: ["Draupadi", "Subhadra", "Rukmini"],
+                    hindi: ["द्रौपदी", "सुभद्रा", "रुक्मिणी"],
+                    bengali: ["দ্রৌপদী", "সুভদ্রা", "রুক্মিণী"],
+                    tamil: ["திரௌபதி", "சுபத்ரா", "ருக்மணி"],
+                    telugu: ["ద్రౌపది", "సుభద్ర", "రుక్మిణి"],
+                    punjabi: ["ਦ੍ਰੌਪਦੀ", "ਸੁਭਦ੍ਰਾ", "ਰੁਕਮਿਣੀ"]
+                },
+                answer: "Draupadi"
+            }
+        ];
+        
+        // Facts for when the user loses the quiz
+        const ramayanaMahabharataFacts = [
+            "The Mahabharata is considered the longest poem ever written.",
+            "The Bhagavad Gita is a part of the Mahabharata.",
+            "Hanuman is believed to be the son of the wind god, Vayu.",
+            "The 'Sudarshana Chakra' is the divine discus of Lord Vishnu.",
+            "The Ramayana's original version was written by the sage Valmiki.",
+            "In the Mahabharata, the Pandavas and Kauravas were cousins.",
+            "Lord Krishna's kingdom was known as Dwarka.",
+            "Bhishma was the great-uncle of both the Pandavas and the Kauravas.",
+            "The 'Pushpaka Vimana' was a mythical flying palace owned by Ravana.",
+            "Lakshmana, the younger brother of Lord Rama, stayed awake for 14 years during their exile.",
+            "The Mahabharata contains over 100,000 verses.",
+            "The five Pandava brothers were Yudhishthira, Bhima, Arjuna, Nakula, and Sahadeva.",
+            "The Ramayana's main antagonist, Ravana, was a great scholar and a devotee of Lord Shiva.",
+            "Lord Krishna's conch shell was named 'Panchajanya'.",
+            "The game of dice in the Mahabharata was the event that led to the great war.",
+            "Sita was found as a baby in a furrow in the ground, and her name means 'furrow'.",
+            "The city of Ayodhya is considered the birthplace of Lord Rama.",
+            "The battle of Kurukshetra lasted for 18 days.",
+            "In the Mahabharata, the great warrior Karna was a son of Kunti, but was raised by a charioteer's family.",
+            "The forest where Rama, Sita, and Lakshmana spent most of their exile was known as Dandakaranya."
+        ];
+
+        // Game variables
+        const bow = { x: gameCanvas.width / 2, y: gameCanvas.height - 50 };
+        const chakras = [];
+        const targets = [];
+        let lastChakraTime = 0;
+        const chakraCooldown = 500; // milliseconds
+        let targetSpeed = 2; // Increased speed
+        let missedDemons = 0;
+        
+        let demonSpawnInterval = null; // Use a single variable for the interval
+        let gameTimerInterval = null;
+
+        // Sound effects setup using Tone.js
+        const correctSound = new Tone.Synth({
+            oscillator: { type: "sine" },
+            envelope: { attack: 0.05, decay: 0.2, sustain: 0.1, release: 0.4 }
+        }).toDestination();
+        const incorrectSound = new Tone.Synth({
+            oscillator: { type: "sawtooth" },
+            envelope: { attack: 0.05, decay: 0.2, sustain: 0.1, release: 0.4 }
+        }).toDestination();
+        const chakraSound = new Tone.Synth({
+            oscillator: { type: "triangle" },
+            envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 }
+        }).toDestination();
+        
+        // Thunderous hit sound
+        const hitNoise = new Tone.NoiseSynth({
+            noise: { type: "brown" },
+            envelope: { attack: 0.1, decay: 0.6, sustain: 0, release: 0.6 }
+        }).toDestination();
+        const hitBass = new Tone.Synth({
+            oscillator: { type: "sine" },
+            envelope: { attack: 0.01, decay: 0.5, sustain: 0.1, release: 0.5 },
+        }).toDestination();
+
+        // Missed target sound
+        const missedSound = new Tone.Synth({
+            oscillator: { type: "square" },
+            envelope: { attack: 0.05, decay: 0.1, sustain: 0, release: 0.2 },
+            volume: -10
+        }).toDestination();
+        
+        // Background music setup
+        const musicSynth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "triangle" },
+            envelope: { attack: 0.5, decay: 0.5, sustain: 1, release: 0.5 }
+        }).toDestination();
+
+        const musicLoop = new Tone.Loop(time => {
+            musicSynth.triggerAttackRelease(["C4", "E4", "G4"], "1m", time);
+            musicSynth.triggerAttackRelease(["C4", "E4", "G4"], "1m", time + Tone.Time("2m").toSeconds());
+            musicSynth.triggerAttackRelease(["D4", "F4", "A4"], "1m", time + Tone.Time("4m").toSeconds());
+            musicSynth.triggerAttackRelease(["C4", "E4", "G4"], "1m", time + Tone.Time("6m").toSeconds());
+        }, "8m");
+
+
+        // --- Core Functions ---
+
+        // Function to shuffle an array (Fisher-Yates algorithm)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Function to update the UI based on the app state
+        function updateUI() {
+            welcomeSection.style.display = appState === 'welcome' ? 'flex' : 'none';
+            quizSection.style.display = appState === 'quiz' ? 'flex' : 'none';
+            gameSection.style.display = appState === 'game' ? 'flex' : 'none';
+            resultSection.style.display = appState === 'results' ? 'flex' : 'none';
+        }
+        
+        window.onload = function() {
+            MathJax.typeset();
+        }
+
+        // --- Quiz Functions ---
+
+        function startQuiz() {
+            Tone.start(); // Start the audio context on user interaction
+            selectedLanguage = languageSelect.value;
+            appState = 'quiz';
+            currentQuizIndex = 0;
+            quizCorrectAnswers = 0;
+            currentQuizData = shuffleArray([...fullQuizData]).slice(0, 5); // Get 5 random questions
+            currentShlokas = shuffleArray([...shlokaData]).slice(0, 5);
+            updateUI();
+            loadQuestion();
+            musicLoop.start(0);
+            Tone.Transport.start();
+        }
+
+        function loadQuestion() {
+            const currentQ = currentQuizData[currentQuizIndex];
+            if (!currentQ) {
+                // All questions answered, check if they can play the game
+                musicLoop.stop();
+                if (quizCorrectAnswers >= 3) { // User must get at least 3 correct
+                    appState = 'game';
+                    updateUI();
+                    startGame();
+                } else {
+                    showFacts();
+                }
+                return;
+            }
+
+            // Clear previous content
+            quizQuestionContainer.innerHTML = '';
+            quizFeedback.textContent = '';
+            
+            // Display shloka
+            const shloka = currentShlokas[currentQuizIndex];
+            quizShlokaEl.innerHTML = `
+                $$${shloka.sanskrit}$$
+                <p class="text-sm mt-2">${shloka.english}</p>
+                <p class="text-sm mt-1">${shloka[selectedLanguage]}</p>
+            `;
+            MathJax.typeset();
+            
+            // Create question and options
+            const questionText = document.createElement('p');
+            questionText.className = 'text-xl font-semibold mb-4';
+            questionText.textContent = currentQ.question[selectedLanguage];
+            quizQuestionContainer.appendChild(questionText);
+
+            currentQ.options[selectedLanguage].forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'w-full py-3 px-4 mb-3 rounded-lg bg-gray-800 hover:bg-amber-600 text-left transition-colors duration-200 shadow-md';
+                button.textContent = option;
+                button.setAttribute('data-english-answer', currentQ.options.english[index]); // Store the english version for checking
+                button.addEventListener('click', () => checkAnswer(button.getAttribute('data-english-answer'), currentQ.answer));
+                quizQuestionContainer.appendChild(button);
+            });
+            nextQuestionBtn.style.display = 'none';
+        }
+
+        function checkAnswer(selected, correct) {
+            const options = quizQuestionContainer.querySelectorAll('button');
+            let isCorrect = selected === correct;
+
+            options.forEach(button => {
+                if (button.getAttribute('data-english-answer') === correct) {
+                    button.classList.remove('bg-gray-800');
+                    button.classList.add('bg-green-600');
+                } else if (button.getAttribute('data-english-answer') === selected) {
+                    button.classList.remove('bg-gray-800');
+                    button.classList.add('bg-red-600');
+                }
+                button.disabled = true; // Disable all buttons
+            });
+
+            if (isCorrect) {
+                quizFeedback.textContent = "Correct!";
+                quizFeedback.className = "text-lg font-semibold mb-4 text-green-400";
+                quizCorrectAnswers++;
+                correctSound.triggerAttackRelease("C5", "8n");
+            } else {
+                quizFeedback.textContent = "Incorrect.";
+                quizFeedback.className = "text-lg font-semibold mb-4 text-red-400";
+                incorrectSound.triggerAttackRelease("G3", "8n");
+            }
+            nextQuestionBtn.style.display = 'block';
+        }
+
+        function nextQuestion() {
+            currentQuizIndex++;
+            loadQuestion();
+        }
+
+        function showFacts() {
+            musicLoop.stop();
+            Tone.Transport.stop();
+            appState = 'results';
+            updateUI();
+            finalScoreText.innerHTML = `<span class="text-red-400">Your knowledge was not enough. But do not despair!</span><br/>Here are some facts to help you on your next trial:`;
+            
+            const factsList = document.createElement('ul');
+            factsList.className = 'list-disc list-inside text-left mt-6 text-gray-200 text-lg';
+            
+            shuffleArray(ramayanaMahabharataFacts).slice(0, 10).forEach(fact => {
+                const li = document.createElement('li');
+                li.textContent = fact;
+                factsList.appendChild(li);
+            });
+            
+            resultSection.appendChild(factsList);
+            resultSection.querySelector('#restart-btn').style.display = 'block';
+        }
+
+        // --- Game Functions ---
+        function startGame() {
+            gameScore = 0;
+            gameTimer = 30; // Reset timer
+            
+            gameScoreEl.textContent = gameScore;
+            gameTimerEl.textContent = gameTimer;
+            const savedHighScore = localStorage.getItem('epicLegendsHighScore') || 0;
+            highScoreEl.textContent = savedHighScore;
+            
+            // Clear previous game state
+            chakras.length = 0;
+            targets.length = 0;
+
+            // Start the game loop
+            gameLoop();
+            
+            // Start the demon spawner
+            demonSpawner = setInterval(createTarget, 1000); // Faster spawn rate
+
+            // Start the game timer
+            gameTimerInterval = setInterval(() => {
+                gameTimer--;
+                gameTimerEl.textContent = gameTimer;
+                if (gameTimer <= 0) {
+                    clearInterval(gameTimerInterval);
+                    endGame();
+                }
+            }, 1000);
+        }
+        
+        function endGame() {
+            appState = 'results';
+            
+            const savedHighScore = localStorage.getItem('epicLegendsHighScore') || 0;
+            
+            if (gameScore > savedHighScore) {
+                localStorage.setItem('epicLegendsHighScore', gameScore);
+                finalScoreText.innerHTML = `<span class="text-green-400">A new high score!</span><br/>You scored ${gameScore} points!`;
+            } else {
+                finalScoreText.textContent = `You scored ${gameScore} points.`;
+            }
+            
+            // Randomly select and display an inspiring quote
+            const randomQuote = endGameQuotes[Math.floor(Math.random() * endGameQuotes.length)];
+            finalShlokaEl.innerHTML = `
+                $$${randomQuote.sanskrit}$$
+                <p class="text-sm mt-2">${randomQuote.english}</p>
+                <p class="text-sm mt-1">${randomQuote[selectedLanguage]}</p>
+            `;
+            MathJax.typeset();
+            
+            updateUI();
+            // Remove facts list if it exists
+            const factsList = resultSection.querySelector('ul');
+            if (factsList) {
+                factsList.remove();
+            }
+            // Clear intervals
+            clearInterval(demonSpawner);
+            clearInterval(gameTimerInterval);
+        }
+
+        function createTarget() {
+            const target = {
+                x: Math.random() * (gameCanvas.width - 100) + 50,
+                y: -50,
+                rotation: 0,
+                speed: targetSpeed,
+                color: '#d44a2c'
+            };
+            targets.push(target);
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+            // Draw the handle for the chakra
+            ctx.fillStyle = '#654321';
+            ctx.fillRect(bow.x - 20, bow.y, 40, 10);
+            ctx.fillRect(bow.x - 5, bow.y, 10, 40);
+            
+            // Draw targets (demons)
+            targets.forEach(target => {
+                ctx.save();
+                ctx.translate(target.x, target.y);
+                ctx.rotate(target.rotation);
+
+                // Demon body
+                ctx.fillStyle = '#b32400';
+                ctx.beginPath();
+                ctx.moveTo(0, -30);
+                ctx.lineTo(25, -20);
+                ctx.lineTo(25, 20);
+                ctx.lineTo(0, 30);
+                ctx.lineTo(-25, 20);
+                ctx.lineTo(-25, -20);
+                ctx.closePath();
+                ctx.fill();
+
+                // Demon face with angry eyes and sharp teeth
+                ctx.fillStyle = '#1a1a1a';
+                ctx.beginPath();
+                ctx.arc(-8, -5, 4, 0, Math.PI * 2);
+                ctx.arc(8, -5, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = 'red';
+                ctx.beginPath();
+                ctx.moveTo(-15, -15);
+                ctx.lineTo(-10, -25);
+                ctx.lineTo(-5, -15);
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.moveTo(15, -15);
+                ctx.lineTo(10, -25);
+                ctx.lineTo(5, -15);
+                ctx.fill();
+
+                ctx.fillStyle = '#eee';
+                ctx.beginPath();
+                ctx.moveTo(-10, 5);
+                ctx.lineTo(-5, 10);
+                ctx.lineTo(0, 5);
+                ctx.lineTo(5, 10);
+                ctx.lineTo(10, 5);
+                ctx.fill();
+                
+                // Mouth
+                ctx.fillStyle = '#a1a1a1';
+                ctx.beginPath();
+                ctx.arc(0, 15, 8, 0, Math.PI, true);
+                ctx.fill();
+
+                ctx.restore();
+            });
+
+            // Draw chakras
+            chakras.forEach(chakra => {
+                ctx.save();
+                ctx.translate(chakra.x, chakra.y);
+                ctx.rotate(chakra.rotation);
+
+                // Chakra shape
+                ctx.fillStyle = '#a87b32';
+                ctx.beginPath();
+                ctx.arc(0, 0, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Blades
+                for(let i = 0; i < 8; i++) {
+                    const angle = (Math.PI / 4) * i;
+                    const bladeSize = 10;
+                    const bladeDistance = 15;
+                    ctx.beginPath();
+                    ctx.moveTo(Math.cos(angle) * bladeDistance, Math.sin(angle) * bladeDistance);
+                    ctx.lineTo(Math.cos(angle) * (bladeDistance + bladeSize), Math.sin(angle) * (bladeDistance + bladeSize));
+                    ctx.lineTo(Math.cos(angle - Math.PI / 16) * bladeDistance, Math.sin(angle - Math.PI / 16) * bladeDistance);
+                    ctx.lineTo(Math.cos(angle + Math.PI / 16) * bladeDistance, Math.sin(angle + Math.PI / 16) * bladeDistance);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            });
+        }
+
+        function updateGame() {
+            // Update target positions and rotation
+            targets.forEach((target, index) => {
+                target.y += target.speed;
+                target.rotation += 0.02;
+                if (target.y > gameCanvas.height + 50) {
+                    targets.splice(index, 1);
+                    missedSound.triggerAttackRelease("A2", "8n");
+                    endGame(); // End game on a miss
+                }
+            });
+
+            // Update chakra positions and rotation
+            chakras.forEach((chakra, chakraIndex) => {
+                chakra.y -= chakra.speed;
+                chakra.rotation += 0.2; // Spin the chakra
+
+                // Check for collisions
+                targets.forEach((target, targetIndex) => {
+                    const distance = Math.sqrt(Math.pow(chakra.x - target.x, 2) + Math.pow(chakra.y - target.y, 2));
+                    if (distance < 25) {
+                        // Collision! Remove both
+                        targets.splice(targetIndex, 1);
+                        chakras.splice(chakraIndex, 1);
+                        gameScore += 10;
+                        gameScoreEl.textContent = gameScore;
+                        hitNoise.triggerAttackRelease("1s");
+                        hitBass.triggerAttackRelease("C1", "1s");
+                    }
+                });
+            });
+            // Remove chakras that are off-screen
+            chakras.filter(chakra => chakra.y > -10);
+        }
+
+        function gameLoop() {
+            if (appState === 'game') {
+                updateGame();
+                drawGame();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // --- Event Listeners ---
+        startQuizBtn.addEventListener('click', startQuiz);
+        nextQuestionBtn.addEventListener('click', nextQuestion);
+        restartBtn.addEventListener('click', () => {
+            appState = 'welcome';
+            updateUI();
+            const factsList = resultSection.querySelector('ul');
+            if (factsList) {
+                factsList.remove();
+            }
+        });
+
+        // Chakra controls
+        gameCanvas.addEventListener('mousemove', (e) => {
+            if (appState === 'game') {
+                const rect = gameCanvas.getBoundingClientRect();
+                bow.x = e.clientX - rect.left;
+            }
+        });
+
+        gameCanvas.addEventListener('click', (e) => {
+            const now = Date.now();
+            if (appState === 'game' && now - lastChakraTime > chakraCooldown) {
+                lastChakraTime = now;
+                const chakra = {
+                    x: bow.x,
+                    y: bow.y,
+                    speed: 5,
+                    rotation: 0
+                };
+                chakras.push(chakra);
+                chakraSound.triggerAttackRelease("C3", "32n");
+            }
+        });
+
+        // Initial setup
+        updateUI();
+    </script>
+</body>
+</html>
